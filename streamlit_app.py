@@ -116,14 +116,20 @@ with st.form("form_evento"):
     else:
         nome = st.text_input("Nome do cliente")
 
-    cep = st.text_input("CEP")
+    # =========================
+    # ENDEREÇO NOVO (ESTRUTURADO)
+    # =========================
 
-    endereco_base = ""
+    st.subheader("📍 Endereço do evento")
+
+    cep = st.text_input("CEP (opcional)")
+    endereco = st.text_input("Endereço (Rua / Avenida)")
     numero = st.text_input("Número")
     complemento = st.text_input("Complemento")
 
     cidade = ""
 
+    # CEP só para consulta (não quebra sistema)
     if cep:
         try:
             resposta = requests.get(
@@ -135,22 +141,29 @@ with st.form("form_evento"):
                 dados = resposta.json()
 
                 if "erro" not in dados:
-                    endereco_base = dados.get("logradouro", "")
                     cidade = dados.get("localidade", "")
                     estado = dados.get("uf", "")
-
-                    st.success(f"{endereco_base} - {cidade}/{estado}")
-
+                    st.success(f"📍 CEP válido: {cidade}/{estado}")
                 else:
-                    st.error("CEP não encontrado")
+                    st.warning("CEP não encontrado (continuando com endereço manual)")
 
             else:
-                st.error("Erro na consulta do CEP")
+                st.warning("Falha ao consultar CEP")
 
         except:
-            st.error("Erro ao buscar CEP")
+            st.warning("Erro ao buscar CEP")
 
-    endereco_final = f"{endereco_base}, {numero} - {complemento}"
+    # =========================
+    # MONTAGEM DO ENDEREÇO FINAL
+    # =========================
+
+    endereco_final = endereco
+
+    if numero:
+        endereco_final += f", {numero}"
+
+    if complemento:
+        endereco_final += f" - {complemento}"
 
     horario = st.time_input("Horário do evento")
     data_evento = st.date_input("Data do evento", min_value=date.today())
@@ -218,7 +231,7 @@ with st.form("form_evento"):
             evento = {
                 "nome": nome,
                 "cpf": cpf_formatado,
-                "endereco": endereco_final,
+                "endereco": endereco_final if endereco_final.strip() else "Não informado",
                 "cidade": cidade,
                 "horario": str(horario),
                 "data": data_evento.strftime("%Y-%m-%d"),
@@ -226,8 +239,6 @@ with st.form("form_evento"):
                 "total": total,
                 "robos": robos,
                 "letras": qtd_letras if letras else 0,
-
-                # ✅ SERVIÇOS SALVOS CORRETAMENTE
                 "tambor": tambor,
                 "pista": pista,
                 "plataforma": plataforma
@@ -265,9 +276,6 @@ else:
             elif (data_evento - date.today()).days == 1:
                 alerta = "⚠️ Evento amanhã"
 
-            # =========================
-            # SERVIÇOS EXTRAS MOSTRADOS
-            # =========================
             extras = []
 
             if evento.get("tambor"):
@@ -279,7 +287,7 @@ else:
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
 
-            servicos_texto = ", ".join(extras) if extras else "Nenhum serviço extra"
+            servicos = ", ".join(extras) if extras else "Nenhum serviço extra"
 
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
@@ -291,7 +299,7 @@ else:
 📍 Endereço: {evento.get('endereco')}  
 
 🤖 Robôs: {len(evento['robos'])}  
-🎛️ Serviços: {servicos_texto}  
+🎛️ Serviços: {servicos}  
 
 💰 Total: R$ {evento.get('total')}  
 {alerta}

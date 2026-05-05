@@ -13,18 +13,6 @@ if "eventos" not in st.session_state:
     st.session_state.eventos = []
 
 # =========================
-# TABELA DE PREÇOS
-# =========================
-
-precos = {
-    "robo": 500,
-    "tambor": 300,
-    "pista": 400,
-    "letras": 250,
-    "plataforma": 600
-}
-
-# =========================
 # CADASTRO
 # =========================
 
@@ -32,48 +20,85 @@ st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
     nome = st.text_input("Nome do cliente")
-    data_evento = st.date_input("Data do evento", min_value=date.today())
+
+    data_evento = st.date_input(
+        "Data do evento",
+        min_value=date.today(),
+        format="DD/MM/YYYY"
+    )
 
     tipo = st.selectbox("Tipo de evento", [
         "Casamento", "Festa", "15 anos", "Balada", "Outro"
     ])
 
-    st.write("Serviços contratados:")
+    st.write("🤖 Escolha os robôs:")
 
-    robo = st.checkbox("🤖 Robô")
-    tambor = st.checkbox("🥁 Tambor LED")
-    pista = st.checkbox("💃 Pista Paris")
-    letras = st.checkbox("🔠 Letras luminosas")
-    plataforma = st.checkbox("🎥 Plataforma 360")
+    robos = st.multiselect(
+        "Selecione os robôs",
+        ["Megatron", "Bumblebee", "Tequileiro"]
+    )
+
+    tambor = st.checkbox("🥁 Tambor LED (R$2800)")
+    pista = st.checkbox("💃 Pista Paris (R$4000)")
+    plataforma = st.checkbox("🎥 Plataforma 360 (R$2500)")
+
+    letras = st.checkbox("🔠 Letras luminosas (R$200 por letra)")
+    qtd_letras = 0
+
+    if letras:
+        qtd_letras = st.number_input("Quantidade de letras", min_value=1, step=1)
 
     salvar = st.form_submit_button("Salvar evento")
 
     if salvar:
+
         total = 0
 
-        if robo:
-            total += precos["robo"]
-        if tambor:
-            total += precos["tambor"]
+        # =========================
+        # ROBÔS
+        # =========================
+
+        qtd_robos = len(robos)
+
+        if qtd_robos == 1:
+            total += 1200
+        elif qtd_robos > 1:
+            # primeiro robô 1200 + 800 por adicional (ajustável)
+            total += 1200 + (qtd_robos - 1) * 800
+
+        # =========================
+        # COMBO ROBÔ + TAMBOR
+        # =========================
+
+        if qtd_robos >= 1 and tambor:
+            total -= 1200  # remove valor do robô calculado
+            total -= 2800  # remove tambor
+            total += 3000  # aplica combo
+
+        else:
+            if tambor:
+                total += 2800
+
+        # =========================
+        # OUTROS
+        # =========================
+
         if pista:
-            total += precos["pista"]
-        if letras:
-            total += precos["letras"]
+            total += 4000
+
         if plataforma:
-            total += precos["plataforma"]
+            total += 2500
+
+        if letras:
+            total += qtd_letras * 200
 
         evento = {
             "nome": nome,
             "data": data_evento,
             "tipo": tipo,
-            "servicos": {
-                "robo": robo,
-                "tambor": tambor,
-                "pista": pista,
-                "letras": letras,
-                "plataforma": plataforma
-            },
-            "total": total
+            "total": total,
+            "robos": robos,
+            "letras": qtd_letras if letras else 0
         }
 
         st.session_state.eventos.append(evento)
@@ -90,9 +115,12 @@ if not st.session_state.eventos:
 else:
     for evento in st.session_state.eventos:
 
-        st.subheader(f"{evento['nome']} - {evento['data']}")
+        st.subheader(f"{evento['nome']} - {evento['data'].strftime('%d/%m/%Y')}")
 
         st.write(f"Tipo: {evento['tipo']}")
+
+        if evento["robos"]:
+            st.write(f"🤖 Robôs: {', '.join(evento['robos'])}")
 
         # ALERTA
         if evento["data"] == date.today():
@@ -100,13 +128,10 @@ else:
         elif (evento["data"] - date.today()).days == 1:
             st.warning("⚠️ Evento amanhã")
 
-        # SERVIÇOS
-        st.write("📦 Serviços:")
-        for servico, ativo in evento["servicos"].items():
-            if ativo:
-                st.write(f"✔ {servico}")
-
-        # VALOR
         st.success(f"💰 Total do evento: R$ {evento['total']}")
 
+        if evento["letras"] > 0:
+            st.write(f"🔠 Letras: {evento['letras']}")
+
         st.divider()
+        

@@ -233,8 +233,9 @@ else:
 
             extras = []
 
+            # 🔥 CORREÇÃO APLICADA AQUI
             if evento.get("combo"):
-                extras.append("🔥 Combo (Robô + Tambor LED)")  # ✅ CORRIGIDO
+                extras.append("🔥 Combo ( Robô + Tambor LED )")
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")

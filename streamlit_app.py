@@ -153,26 +153,33 @@ with st.form("form_evento"):
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
     qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
 
-    robos = []
-    robos += ["Megatron"] * qtd_megatron
-    robos += ["Bumblebee"] * qtd_bumblebee
-    robos += ["Tequileiro"] * qtd_tequileiro
+    robos = (
+        ["Megatron"] * qtd_megatron +
+        ["Bumblebee"] * qtd_bumblebee +
+        ["Tequileiro"] * qtd_tequileiro
+    )
 
     tambor = st.checkbox("🥁 Tambor LED")
     pista = st.checkbox("💃 Pista Paris")
     plataforma = st.checkbox("🎥 Plataforma 360")
 
     # =========================
-    # LETRAS (NOME PERSONALIZADO)
+    # LETRAS (CORRIGIDO UX)
     # =========================
 
     letras = st.checkbox("🔠 Letras luminosas")
-    qtd_letras = 0
-    nome_letras = ""
 
-    if letras:
-        qtd_letras = st.number_input("Quantidade de letras", 1)
-        nome_letras = st.text_input("Nome das letras (ex: ANA, JOÃO, 15 ANOS)")
+    qtd_letras = st.number_input(
+        "Quantidade de letras",
+        min_value=0,
+        value=0 if not letras else 1,
+        disabled=not letras
+    )
+
+    nome_letras = st.text_input(
+        "Nome das letras (ex: DAVI, 15 ANOS)",
+        disabled=not letras
+    )
 
     combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
 
@@ -283,6 +290,8 @@ else:
             if qtd_robos == 0:
                 qtd_robos = 1
 
+            extras.append(f"🔠 Letras: {evento.get('nome_letras', 'Não informado')}")
+
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
@@ -293,7 +302,6 @@ else:
 📍 Endereço: {evento.get('endereco')}  
 
 🤖 Robôs: {qtd_robos} ({robos_texto})  
-🔠 Letras: {evento.get('nome_letras', 'Não informado')}  
 🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
 
 💰 Total: R$ {evento.get('total')}  

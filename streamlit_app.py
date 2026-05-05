@@ -69,7 +69,7 @@ def buscar_cliente(cpf):
 config_padrao = {
     "robo": 1200,
     "tambor": 2800,
-    "combo": 3000,  # preço com desconto
+    "combo": 3000,
     "pista": 4000,
     "plataforma": 2500,
     "letra": 200
@@ -119,7 +119,7 @@ with st.form("form_evento"):
     st.subheader("📍 Endereço")
 
     cep = st.text_input("CEP")
-    endereco = st.text_input("Endereço (Rua/Avenida)")
+    endereco = st.text_input("Endereço")
     numero = st.text_input("Número")
     complemento = st.text_input("Complemento")
 
@@ -127,15 +127,12 @@ with st.form("form_evento"):
 
     if cep:
         try:
-            resposta = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
-
-            if resposta.status_code == 200:
-                dados = resposta.json()
-
-                if "erro" not in dados:
-                    cidade = dados.get("localidade", "")
-                    estado = dados.get("uf", "")
-                    st.success(f"📍 {cidade}/{estado}")
+            r = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
+            if r.status_code == 200:
+                data = r.json()
+                if "erro" not in data:
+                    cidade = data.get("localidade", "")
+                    st.success(f"📍 {cidade}")
         except:
             st.warning("Erro ao consultar CEP")
 
@@ -172,11 +169,7 @@ with st.form("form_evento"):
     if letras:
         qtd_letras = st.number_input("Quantidade de letras", 1)
 
-    # =========================
-    # COMBO (OPÇÃO MANUAL + AUTO)
-    # =========================
-
-    combo_manual = st.checkbox("🔥 Aplicar Combo (Robô + Tambor LED com desconto)")
+    combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
 
     salvar = st.form_submit_button("Salvar evento")
 
@@ -197,16 +190,17 @@ with st.form("form_evento"):
             total = 0
             qtd_robos = len(robos)
 
-            # =========================
-            # COMBO INTELIGENTE
-            # =========================
-
             combo_auto = qtd_robos >= 1 and tambor
+
+            # =========================
+            # COMBO
+            # =========================
 
             if combo_manual or combo_auto:
                 total += config["combo"]
+
                 if combo_auto:
-                    st.info("🔥 Combo automático aplicado (desconto de R$ 1000)")
+                    st.info("🔥 Combo automático aplicado")
                 else:
                     st.info("🔥 Combo manual aplicado")
             else:
@@ -226,7 +220,7 @@ with st.form("form_evento"):
             evento = {
                 "nome": nome,
                 "cpf": cpf_formatado,
-                "endereco": endereco_final if endereco_final.strip() else "Não informado",
+                "endereco": endereco_final,
                 "cidade": cidade,
                 "horario": str(horario),
                 "data": data_evento.strftime("%Y-%m-%d"),
@@ -250,7 +244,7 @@ with st.form("form_evento"):
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA DE EVENTOS
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -263,6 +257,7 @@ else:
         col1, col2 = st.columns([4, 1])
 
         with col1:
+
             data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
             data_evento = date.fromisoformat(evento["data"])
 
@@ -284,7 +279,11 @@ else:
                 extras.append("🎥 Plataforma 360")
 
             if evento.get("combo"):
-                extras.append("🔥 Combo aplicado (Desconto R$1000)")
+                extras.append("🔥 (Robô + Tambor LED)")
+
+            qtd_robos = len(evento.get("robos", []))
+            if qtd_robos == 0:
+                qtd_robos = 1
 
             servicos = ", ".join(extras) if extras else "Nenhum serviço extra"
 
@@ -297,7 +296,7 @@ else:
 
 📍 Endereço: {evento.get('endereco')}  
 
-🤖 Robôs: {len(evento['robos'])}  
+🤖 Robôs: {qtd_robos}  
 🎛️ Serviços: {servicos}  
 
 💰 Total: R$ {evento.get('total')}  

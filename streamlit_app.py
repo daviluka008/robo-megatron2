@@ -153,21 +153,26 @@ with st.form("form_evento"):
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
     qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
 
-    robos = (
-        ["Megatron"] * qtd_megatron +
-        ["Bumblebee"] * qtd_bumblebee +
-        ["Tequileiro"] * qtd_tequileiro
-    )
+    robos = []
+    robos += ["Megatron"] * qtd_megatron
+    robos += ["Bumblebee"] * qtd_bumblebee
+    robos += ["Tequileiro"] * qtd_tequileiro
 
     tambor = st.checkbox("🥁 Tambor LED")
     pista = st.checkbox("💃 Pista Paris")
     plataforma = st.checkbox("🎥 Plataforma 360")
 
+    # =========================
+    # LETRAS (NOME PERSONALIZADO)
+    # =========================
+
     letras = st.checkbox("🔠 Letras luminosas")
     qtd_letras = 0
+    nome_letras = ""
 
     if letras:
         qtd_letras = st.number_input("Quantidade de letras", 1)
+        nome_letras = st.text_input("Nome das letras (ex: ANA, JOÃO, 15 ANOS)")
 
     combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
 
@@ -219,6 +224,7 @@ with st.form("form_evento"):
                 "total": total,
                 "robos": robos,
                 "letras": qtd_letras if letras else 0,
+                "nome_letras": nome_letras,
                 "tambor": tambor,
                 "pista": pista,
                 "plataforma": plataforma,
@@ -269,15 +275,13 @@ else:
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
 
-            # 🔥 CORREÇÃO FINAL DO TEXTO DO COMBO
             if evento.get("combo"):
                 extras.append("🔥 Combo (Robô + Tambor LED)")
 
+            robos_texto = ", ".join(evento.get("robos", []))
             qtd_robos = len(evento.get("robos", []))
             if qtd_robos == 0:
                 qtd_robos = 1
-
-            servicos = ", ".join(extras) if extras else "Nenhum serviço extra"
 
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
@@ -288,8 +292,9 @@ else:
 
 📍 Endereço: {evento.get('endereco')}  
 
-🤖 Robôs: {qtd_robos}  
-🎛️ Serviços: {servicos}  
+🤖 Robôs: {qtd_robos} ({robos_texto})  
+🔠 Letras: {evento.get('nome_letras', 'Não informado')}  
+🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
 
 💰 Total: R$ {evento.get('total')}  
 {alerta}

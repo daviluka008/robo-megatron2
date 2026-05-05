@@ -1,104 +1,95 @@
 import streamlit as st
+from datetime import date
 
-st.set_page_config(page_title="Megatron Show", page_icon="🤖", layout="wide")
+st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 
-# =========================================
-# ESTADO
-# =========================================
+st.title("📋 Controle de Eventos - Megatron")
 
-if "energia" not in st.session_state:
-    st.session_state.energia = 0
+# =========================
+# BANCO SIMPLES (memória)
+# =========================
 
-if "ativo" not in st.session_state:
-    st.session_state.ativo = False
+if "eventos" not in st.session_state:
+    st.session_state.eventos = []
 
-# =========================================
-# TÍTULO
-# =========================================
+# =========================
+# CADASTRO
+# =========================
 
-st.title("🎉🤖 Megatron Kronos - Show de Robôs")
+st.header("➕ Novo Evento")
 
-# =========================================
-# FUNÇÃO SEGURA PRA IMAGEM
-# =========================================
+with st.form("form_evento"):
+    nome = st.text_input("Nome do cliente")
+    data_evento = st.date_input("Data do evento", min_value=date.today())
 
-def mostrar_imagem(caminho):
-    try:
-        st.image(caminho, use_container_width=True)
-    except:
-        st.warning(f"Erro ao carregar imagem: {caminho}")
+    tipo = st.selectbox("Tipo de evento", [
+        "Casamento", "Festa", "15 anos", "Balada", "Outro"
+    ])
 
-# =========================================
-# IMAGEM INICIAL
-# =========================================
+    st.write("Serviços contratados:")
 
-if not st.session_state.ativo:
-    mostrar_imagem("robo1.png")
+    robo = st.checkbox("🤖 Robô")
+    tambor = st.checkbox("🥁 Tambor LED")
+    pista = st.checkbox("💃 Pista Paris")
+    letras = st.checkbox("🔠 Letras luminosas")
+    plataforma = st.checkbox("🎥 Plataforma 360")
 
-# =========================================
-# CONTROLES
-# =========================================
+    salvar = st.form_submit_button("Salvar evento")
 
-col1, col2, col3 = st.columns(3)
+    if salvar:
+        evento = {
+            "nome": nome,
+            "data": data_evento,
+            "tipo": tipo,
+            "servicos": {
+                "robo": robo,
+                "tambor": tambor,
+                "pista": pista,
+                "letras": letras,
+                "plataforma": plataforma
+            }
+        }
 
-with col1:
-    if st.button("▶ Iniciar Evento"):
-        st.session_state.ativo = True
-        st.session_state.energia = 20
+        st.session_state.eventos.append(evento)
+        st.success("Evento cadastrado!")
 
-with col2:
-    if st.button("🤖 Ativar Robôs"):
-        if st.session_state.ativo:
-            st.session_state.energia += 30
-        else:
-            st.warning("Inicie o evento primeiro")
+# =========================
+# LISTA DE EVENTOS
+# =========================
 
-with col3:
-    if st.button("🎉 Modo Festa Máxima"):
-        if st.session_state.ativo:
-            st.session_state.energia += 40
+st.header("📅 Agenda de Eventos")
 
-# =========================================
-# SHOW
-# =========================================
-
-if st.session_state.ativo:
-
-    st.subheader("🔥 Show em andamento")
-
-    colA, colB = st.columns(2)
-
-    with colA:
-        mostrar_imagem("robo1.png")
-
-    with colB:
-        mostrar_imagem("robo2.png")
-
-    st.success("🤖 Robôs Megatron dominando a pista!")
-    st.info("💃 Coreografia sincronizada")
-    st.info("🎧 DJ elevando a energia")
-    st.info("✨ Luzes em modo espetáculo")
-
-# =========================================
-# ENERGIA
-# =========================================
-
-st.subheader("📊 Energia do Evento")
-
-energia = st.session_state.energia
-
-st.progress(min(energia / 100, 1.0))
-st.write(f"🔥 Energia: {energia}/100")
-
-# =========================================
-# STATUS FINAL
-# =========================================
-
-if energia >= 100:
-    st.success("🚀 EVENTO INSANO! PÚBLICO EM ÊXTASE 🔥🤯")
-elif energia >= 60:
-    st.info("🎉 Festa bombando!")
-elif energia > 0:
-    st.warning("🎵 Festa começando...")
+if not st.session_state.eventos:
+    st.info("Nenhum evento cadastrado")
 else:
-    st.write("⏳ Evento parado")
+    for i, evento in enumerate(st.session_state.eventos):
+
+        st.subheader(f"{evento['nome']} - {evento['data']}")
+
+        st.write(f"Tipo: {evento['tipo']}")
+
+        # ALERTA
+        if evento["data"] == date.today():
+            st.error("🚨 EVENTO HOJE!")
+        elif (evento["data"] - date.today()).days == 1:
+            st.warning("⚠️ Evento amanhã")
+
+        # CHECKLIST
+        st.write("📦 Checklist:")
+
+        if evento["servicos"]["robo"]:
+            st.write("✔ Levar robô")
+
+        if evento["servicos"]["tambor"]:
+            st.write("✔ Levar tambor LED")
+
+        if evento["servicos"]["pista"]:
+            st.write("✔ Levar pista Paris")
+
+        if evento["servicos"]["letras"]:
+            st.write("✔ Levar letras luminosas")
+
+        if evento["servicos"]["plataforma"]:
+            st.write("✔ Levar plataforma 360")
+
+        st.divider()

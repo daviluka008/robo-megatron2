@@ -144,7 +144,7 @@ with st.form("form_evento"):
 
 st.subheader("🎛️ Serviços extras")
 
-combo_manual = st.checkbox("(Robô + Tambor LED)")
+combo_manual = st.checkbox("Combo (Robô + Tambor LED)")  # <- opcional corrigido
 tambor = st.checkbox("🥁 Tambor LED")
 pista = st.checkbox("💃 Pista Paris")
 plataforma = st.checkbox("🎥 Plataforma 360")
@@ -233,16 +233,12 @@ else:
 
             extras = []
 
-            # 🔥 CORREÇÃO APLICADA AQUI
             if evento.get("combo"):
-                extras.append("🔥 Combo ( Robô + Tambor LED )")
-
+                extras.append("Combo (Robô + Tambor LED)")  # ✅ CORRIGIDO
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")
-
             if evento.get("pista"):
                 extras.append("💃 Pista Paris")
-
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
 

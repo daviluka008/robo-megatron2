@@ -96,7 +96,7 @@ st.header("➕ Novo Evento")
 with st.form("form_evento"):
 
     cpf_input = st.text_input("CPF")
-    telefone = st.text_input("Telefone")  # 🔥 NOVO
+    telefone = st.text_input("Telefone")
     cpf_formatado = formatar_cpf(cpf_input)
 
     cliente_existente = next((c for c in clientes if c["cpf"] == cpf_formatado), None)
@@ -130,7 +130,7 @@ with st.form("form_evento"):
 
     if salvar:
         st.session_state["_cpf"] = cpf_input
-        st.session_state["_telefone"] = telefone  # 🔥 NOVO
+        st.session_state["_telefone"] = telefone
         st.session_state["_cpf_formatado"] = cpf_formatado
         st.session_state["_nome"] = nome
         st.session_state["_endereco"] = f"{endereco}, {numero} - {complemento}"
@@ -160,6 +160,15 @@ if letras:
     qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
     nome_letras = st.text_input("Nome das letras")
 
+# 🔥 NOVO: escolha do robô do combo
+robo_combo = None
+
+if combo_manual:
+    robo_combo = st.radio(
+        "Escolha o robô do Combo",
+        ["Megatron", "Bumblebee", "Tequileiro"]
+    )
+
 # =========================
 # SALVAR EVENTO
 # =========================
@@ -171,6 +180,10 @@ if st.session_state.get("_salvar"):
         st.stop()
 
     robos = st.session_state["_robos"]
+
+    # 🔥 se combo ativo, substitui/define robô escolhido
+    if combo_manual and robo_combo:
+        robos = [robo_combo]
 
     total = 0
 
@@ -195,7 +208,7 @@ if st.session_state.get("_salvar"):
     evento = {
         "nome": st.session_state["_nome"],
         "cpf": st.session_state["_cpf_formatado"],
-        "telefone": st.session_state["_telefone"],  # 🔥 NOVO
+        "telefone": st.session_state["_telefone"],
         "endereco": st.session_state["_endereco"],
         "horario": st.session_state["_horario"],
         "data": st.session_state["_data"],

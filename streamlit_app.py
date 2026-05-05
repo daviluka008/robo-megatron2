@@ -33,7 +33,6 @@ def salvar_dados(arquivo, dados):
     with open(arquivo, "w") as f:
         json.dump(dados, f, indent=4)
 
-# CPF
 def validar_cpf(cpf):
     cpf = ''.join(filter(str.isdigit, cpf))
     if len(cpf) != 11 or cpf == cpf[0] * 11:
@@ -62,7 +61,7 @@ def buscar_cliente(cpf):
     return None
 
 # =========================
-# CONFIG
+# CONFIG PREÇOS
 # =========================
 
 config_padrao = {
@@ -78,8 +77,8 @@ config = carregar_dados(ARQUIVO_CONFIG, config_padrao)
 
 st.sidebar.header("⚙️ Configurar preços")
 
-for key in config.keys():
-    config[key] = st.sidebar.number_input(key.capitalize(), value=config[key])
+for k in config:
+    config[k] = st.sidebar.number_input(k.capitalize(), value=config[k])
 
 if st.sidebar.button("💾 Salvar preços"):
     salvar_dados(ARQUIVO_CONFIG, config)
@@ -91,6 +90,24 @@ if st.sidebar.button("💾 Salvar preços"):
 
 if "eventos" not in st.session_state:
     st.session_state.eventos = carregar_dados(ARQUIVO_EVENTOS, [])
+
+# =========================
+# LETRAS (CORREÇÃO DEFINITIVA)
+# =========================
+
+st.subheader("🔠 Letras luminosas")
+
+if "letras_ativadas" not in st.session_state:
+    st.session_state.letras_ativadas = False
+
+st.session_state.letras_ativadas = st.checkbox("Ativar letras")
+
+if st.session_state.letras_ativadas:
+    qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
+    nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)")
+else:
+    qtd_letras = 0
+    nome_letras = ""
 
 # =========================
 # FORMULÁRIO
@@ -152,26 +169,6 @@ with st.form("form_evento"):
     salvar = st.form_submit_button("Salvar evento")
 
 # =========================
-# 🔥 LETRAS FORA DO FORM (CORRETO)
-# =========================
-
-st.subheader("🔠 Letras luminosas")
-
-letras = st.checkbox("Ativar letras", key="letras")
-
-if "letras" not in st.session_state:
-    st.session_state.letras = False
-
-st.session_state.letras = letras
-
-if st.session_state.letras:
-    qtd_letras = st.number_input("Quantidade de letras", min_value=1, key="qtd_letras")
-    nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)", key="nome_letras")
-else:
-    qtd_letras = 0
-    nome_letras = ""
-
-# =========================
 # CÁLCULO
 # =========================
 
@@ -199,7 +196,7 @@ if salvar:
     if plataforma:
         total += config["plataforma"]
 
-    if letras:
+    if st.session_state.letras_ativadas:
         total += qtd_letras * config["letra"]
 
     evento = {
@@ -223,7 +220,11 @@ if salvar:
     st.session_state.eventos.append(evento)
     salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
 
-    st.success(f"Evento cadastrado! 💰 R$ {total}")
+    if not cliente_existente:
+        clientes.append({"nome": nome, "cpf": cpf_formatado})
+        salvar_dados(ARQUIVO_CLIENTES, clientes)
+
+    st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
 # LISTA
@@ -231,36 +232,41 @@ if salvar:
 
 st.header("📅 Agenda de Eventos")
 
-for i, evento in enumerate(st.session_state.eventos):
+if not st.session_state.eventos:
+    st.info("Nenhum evento cadastrado")
+else:
+    for i, evento in enumerate(st.session_state.eventos):
 
-    col1, col2 = st.columns([4, 1])
+        col1, col2 = st.columns([4, 1])
 
-    with col1:
+        with col1:
 
-        extras = []
+            data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
 
-        if evento.get("tambor"):
-            extras.append("🥁 Tambor LED")
+            extras = []
 
-        if evento.get("pista"):
-            extras.append("💃 Pista Paris")
+            if evento.get("tambor"):
+                extras.append("🥁 Tambor LED")
 
-        if evento.get("plataforma"):
-            extras.append("🎥 Plataforma 360")
+            if evento.get("pista"):
+                extras.append("💃 Pista Paris")
 
-        if evento.get("combo"):
-            extras.append("🔥 Combo (Robô + Tambor LED)")
+            if evento.get("plataforma"):
+                extras.append("🎥 Plataforma 360")
 
-        if evento.get("letras", 0) > 0:
-            extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")
+            if evento.get("combo"):
+                extras.append("🔥 Combo (Robô + Tambor LED)")
 
-        robos_texto = ", ".join(evento.get("robos", []))
+            if evento.get("letras", 0) > 0:
+                extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")
 
-        st.success(f"""
+            robos_texto = ", ".join(evento.get("robos", []))
+
+            st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
 
-📅 Data: {evento.get('data')} às {evento.get('horario')}  
+📅 Data: {data_formatada} às {evento.get('horario')}  
 🎉 Tipo: {evento.get('tipo')}  
 
 📍 Endereço: {evento.get('endereco')}  
@@ -271,8 +277,10 @@ for i, evento in enumerate(st.session_state.eventos):
 💰 Total: R$ {evento.get('total')}  
 """)
 
-    with col2:
-        if st.button("❌ Excluir", key=f"del_{i}"):
-            st.session_state.eventos.pop(i)
-            salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
-            st.rerun()
+        with col2:
+            if st.button("❌ Excluir", key=f"del_{i}"):
+                st.session_state.eventos.pop(i)
+                salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+                st.rerun()
+
+        st.divider()

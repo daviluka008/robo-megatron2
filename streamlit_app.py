@@ -4,6 +4,9 @@ import json
 import os
 import requests
 
+from google_auth_oauthlib.flow import InstalledAppFlow
+from googleapiclient.discovery import build
+
 st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 
 st.title("📋 Controle de Eventos - Megatron")
@@ -15,6 +18,42 @@ st.title("📋 Controle de Eventos - Megatron")
 ARQUIVO_EVENTOS = "eventos.json"
 ARQUIVO_CONFIG = "config.json"
 ARQUIVO_CLIENTES = "clientes.json"
+
+# =========================
+# GOOGLE CALENDAR
+# =========================
+
+SCOPES = ["https://www.googleapis.com/auth/calendar"]
+
+def conectar_google():
+    flow = InstalledAppFlow.from_client_secrets_file(
+        "credentials.json", SCOPES
+    )
+    creds = flow.run_local_server(port=0)
+    return build("calendar", "v3", credentials=creds)
+
+def criar_evento_google(service, evento):
+    data_inicio = f"{evento['data']}T{evento['horario']}:00"
+
+    event = {
+        "summary": f"Evento: {evento['nome']}",
+        "description": f"""
+Tipo: {evento['tipo']}
+Telefone: {evento.get('telefone','')}
+Robôs: {', '.join(evento['robos'])}
+Total: R$ {evento['total']}
+        """,
+        "start": {
+            "dateTime": data_inicio,
+            "timeZone": "America/Sao_Paulo",
+        },
+        "end": {
+            "dateTime": data_inicio,
+            "timeZone": "America/Sao_Paulo",
+        },
+    }
+
+    service.events().insert(calendarId="primary", body=event).execute()
 
 # =========================
 # FUNÇÕES
@@ -106,7 +145,6 @@ with st.form("form_evento"):
     else:
         nome = st.text_input("Nome do cliente")
 
-    cep = st.text_input("CEP")
     endereco = st.text_input("Endereço")
     numero = st.text_input("Número")
     complemento = st.text_input("Complemento")
@@ -160,14 +198,6 @@ if letras:
     qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
     nome_letras = st.text_input("Nome das letras")
 
-robo_combo = None
-
-if combo_manual:
-    robo_combo = st.radio(
-        "Escolha o robô do Combo",
-        ["Megatron", "Bumblebee", "Tequileiro"]
-    )
-
 # =========================
 # SALVAR EVENTO
 # =========================
@@ -179,10 +209,6 @@ if st.session_state.get("_salvar"):
         st.stop()
 
     robos = st.session_state["_robos"]
-
-    # 🔥 CORREÇÃO FINAL (NÃO SOBRESCREVE MAIS)
-    if combo_manual and robo_combo:
-        robos = robos + [robo_combo]
 
     total = 0
 
@@ -225,61 +251,16 @@ if st.session_state.get("_salvar"):
     st.session_state.eventos.append(evento)
     salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
 
+    # =========================
+    # GOOGLE AGENDA (AQUI ENTRA)
+    # =========================
+
+    try:
+        service = conectar_google()
+        criar_evento_google(service, evento)
+    except:
+        st.warning("Evento salvo, mas não foi possível enviar para Google Agenda.")
+
     st.session_state["_salvar"] = False
 
     st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
-
-# =========================
-# LISTA
-# =========================
-
-st.header("📅 Agenda de Eventos")
-
-if not st.session_state.eventos:
-    st.info("Nenhum evento cadastrado")
-else:
-    for i, evento in enumerate(st.session_state.eventos):
-
-        col1, col2 = st.columns([4, 1])
-
-        with col1:
-
-            data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
-
-            extras = []
-
-            if evento.get("combo"):
-                extras.append("🔥 Combo (Robô + Tambor LED)")
-            if evento.get("tambor"):
-                extras.append("🥁 Tambor LED")
-            if evento.get("pista"):
-                extras.append("💃 Pista Paris")
-            if evento.get("plataforma"):
-                extras.append("🎥 Plataforma 360")
-
-            if evento.get("letras", 0) > 0:
-                extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")
-
-            st.success(f"""
-📌 Cliente: {evento.get('nome')}  
-📞 Telefone: {evento.get('telefone','Não informado')}  
-🧾 CPF: {evento.get('cpf')}  
-
-📅 Data: {data_formatada} às {evento.get('horario')}  
-🎉 Tipo: {evento.get('tipo')}  
-
-📍 Endereço: {evento.get('endereco')}  
-
-🤖 Robôs: {len(evento.get('robos', []))} ({", ".join(evento.get('robos', []))})  
-🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
-
-💰 Total: R$ {evento.get('total')}  
-""")
-
-        with col2:
-            if st.button("❌ Excluir", key=f"del_{i}"):
-                st.session_state.eventos.pop(i)
-                salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
-                st.rerun()
-
-        st.divider()

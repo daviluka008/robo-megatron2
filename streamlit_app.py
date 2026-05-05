@@ -3,17 +3,10 @@ from datetime import date
 import json
 import os
 import requests
-import math
 
 st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 
 st.title("📋 Controle de Eventos - Megatron")
-
-# =========================
-# ENDEREÇO EMPRESA
-# =========================
-
-ENDERECO_EMPRESA_CEP = "04829300"
 
 # =========================
 # ARQUIVOS
@@ -68,51 +61,6 @@ def buscar_cliente(cpf):
         if c["cpf"] == cpf:
             return c
     return None
-
-# =========================
-# KM REAL (GEOCODING)
-# =========================
-
-def pegar_lat_long(cep):
-    try:
-        r = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
-        data = r.json()
-
-        if "erro" in data:
-            return None
-
-        endereco = f"{data.get('logradouro','')}, {data['localidade']}, {data['uf']}"
-
-        geo = requests.get(
-            "https://nominatim.openstreetmap.org/search",
-            params={"q": endereco, "format": "json"},
-            headers={"User-Agent": "MegatronSystem"}
-        ).json()
-
-        if len(geo) == 0:
-            return None
-
-        return float(geo[0]["lat"]), float(geo[0]["lon"])
-
-    except:
-        return None
-
-
-def calcular_distancia_km(p1, p2):
-    R = 6371
-
-    lat1, lon1 = p1
-    lat2, lon2 = p2
-
-    phi1 = math.radians(lat1)
-    phi2 = math.radians(lat2)
-
-    dphi = math.radians(lat2 - lat1)
-    dlambda = math.radians(lon2 - lon1)
-
-    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
-
-    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 # =========================
 # CONFIG PREÇOS
@@ -177,13 +125,10 @@ with st.form("form_evento"):
     complemento = st.text_input("Complemento")
 
     cidade = ""
-    estado = ""
-    taxa_deslocamento = 0
-    km = 0
 
-    origem = None
-    destino = None
-
+    # =========================
+    # CEP (SEM KM)
+    # =========================
     if cep:
         try:
             resposta = requests.get(
@@ -200,22 +145,6 @@ with st.form("form_evento"):
                     estado = dados.get("uf", "")
 
                     st.success(f"{endereco_base} - {cidade}/{estado}")
-
-                    origem = pegar_lat_long(ENDERECO_EMPRESA_CEP)
-                    destino = pegar_lat_long(cep)
-
-                    if origem and destino:
-                        km = round(calcular_distancia_km(origem, destino), 2)
-                    else:
-                        km = 0
-
-                    if km > 50:
-                        taxa_deslocamento = (km - 50) * 2
-                        st.warning("🚗 Fora da capital (até 50km grátis)")
-                        st.info(f"💰 Taxa de deslocamento: R$ {(km - 50) * 2}")
-                    else:
-                        taxa_deslocamento = 0
-                        st.info("Sem taxa de deslocamento (até 50km)")
 
                 else:
                     st.error("CEP não encontrado")
@@ -291,21 +220,17 @@ with st.form("form_evento"):
             if letras:
                 total += qtd_letras * config["letra"]
 
-            total += taxa_deslocamento
-
             evento = {
                 "nome": nome,
                 "cpf": cpf_formatado,
-                "endereco": endereco_final,
+                "endereco": endereco_final if endereco_final.strip() != ",  - " else "Não informado",
                 "cidade": cidade,
-                "cep": cep,
                 "horario": str(horario),
                 "data": data_evento.strftime("%Y-%m-%d"),
                 "tipo": tipo,
                 "total": total,
                 "robos": robos,
-                "letras": qtd_letras if letras else 0,
-                "km": km
+                "letras": qtd_letras if letras else 0
             }
 
             st.session_state.eventos.append(evento)
@@ -350,8 +275,6 @@ else:
 📍 Endereço: {evento.get('endereco')}  
 
 🤖 Robôs: {len(evento['robos'])}  
-
-🚗 Distância: {evento.get('km')} km  
 
 💰 Total: R$ {evento.get('total')}  
 {alerta}

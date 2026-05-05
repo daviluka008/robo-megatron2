@@ -6,11 +6,23 @@ st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 st.title("📋 Controle de Eventos - Megatron")
 
 # =========================
-# BANCO SIMPLES (memória)
+# BANCO
 # =========================
 
 if "eventos" not in st.session_state:
     st.session_state.eventos = []
+
+# =========================
+# TABELA DE PREÇOS
+# =========================
+
+precos = {
+    "robo": 500,
+    "tambor": 300,
+    "pista": 400,
+    "letras": 250,
+    "plataforma": 600
+}
 
 # =========================
 # CADASTRO
@@ -37,6 +49,19 @@ with st.form("form_evento"):
     salvar = st.form_submit_button("Salvar evento")
 
     if salvar:
+        total = 0
+
+        if robo:
+            total += precos["robo"]
+        if tambor:
+            total += precos["tambor"]
+        if pista:
+            total += precos["pista"]
+        if letras:
+            total += precos["letras"]
+        if plataforma:
+            total += precos["plataforma"]
+
         evento = {
             "nome": nome,
             "data": data_evento,
@@ -47,14 +72,15 @@ with st.form("form_evento"):
                 "pista": pista,
                 "letras": letras,
                 "plataforma": plataforma
-            }
+            },
+            "total": total
         }
 
         st.session_state.eventos.append(evento)
-        st.success("Evento cadastrado!")
+        st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA DE EVENTOS
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -62,7 +88,7 @@ st.header("📅 Agenda de Eventos")
 if not st.session_state.eventos:
     st.info("Nenhum evento cadastrado")
 else:
-    for i, evento in enumerate(st.session_state.eventos):
+    for evento in st.session_state.eventos:
 
         st.subheader(f"{evento['nome']} - {evento['data']}")
 
@@ -74,22 +100,13 @@ else:
         elif (evento["data"] - date.today()).days == 1:
             st.warning("⚠️ Evento amanhã")
 
-        # CHECKLIST
-        st.write("📦 Checklist:")
+        # SERVIÇOS
+        st.write("📦 Serviços:")
+        for servico, ativo in evento["servicos"].items():
+            if ativo:
+                st.write(f"✔ {servico}")
 
-        if evento["servicos"]["robo"]:
-            st.write("✔ Levar robô")
-
-        if evento["servicos"]["tambor"]:
-            st.write("✔ Levar tambor LED")
-
-        if evento["servicos"]["pista"]:
-            st.write("✔ Levar pista Paris")
-
-        if evento["servicos"]["letras"]:
-            st.write("✔ Levar letras luminosas")
-
-        if evento["servicos"]["plataforma"]:
-            st.write("✔ Levar plataforma 360")
+        # VALOR
+        st.success(f"💰 Total do evento: R$ {evento['total']}")
 
         st.divider()

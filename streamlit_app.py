@@ -3,17 +3,17 @@ from datetime import date
 import json
 import os
 import requests
+import math
 
 st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 
 st.title("📋 Controle de Eventos - Megatron")
 
 # =========================
-# ENDEREÇO FIXO EMPRESA
+# ENDEREÇO EMPRESA
 # =========================
 
-ENDERECO_EMPRESA = "Rua Professor Enéas de Siqueira Neto, 565, São Paulo - SP, 04829300"
-CEP_EMPRESA = "04829300"
+ENDERECO_EMPRESA_CEP = "04829300"
 
 # =========================
 # ARQUIVOS
@@ -70,23 +70,49 @@ def buscar_cliente(cpf):
     return None
 
 # =========================
-# SIMULAÇÃO DE DISTÂNCIA
+# KM REAL (GEOCODING)
 # =========================
 
-def calcular_km_falso(cidade):
-    if not cidade:
-        return 0
+def pegar_lat_long(cep):
+    try:
+        r = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
+        data = r.json()
 
-    cidade = cidade.lower()
+        if "erro" in data:
+            return None
 
-    if "são paulo" in cidade:
-        return 20
-    elif "juquitiba" in cidade:
-        return 70
-    elif "embu" in cidade or "embú" in cidade:
-        return 35
-    else:
-        return 60
+        endereco = f"{data.get('logradouro','')}, {data['localidade']}, {data['uf']}"
+
+        geo = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={"q": endereco, "format": "json"},
+            headers={"User-Agent": "MegatronSystem"}
+        ).json()
+
+        if len(geo) == 0:
+            return None
+
+        return float(geo[0]["lat"]), float(geo[0]["lon"])
+
+    except:
+        return None
+
+
+def calcular_distancia_km(p1, p2):
+    R = 6371
+
+    lat1, lon1 = p1
+    lat2, lon2 = p2
+
+    phi1 = math.radians(lat1)
+    phi2 = math.radians(lat2)
+
+    dphi = math.radians(lat2 - lat1)
+    dlambda = math.radians(lon2 - lon1)
+
+    a = math.sin(dphi/2)**2 + math.cos(phi1)*math.cos(phi2)*math.sin(dlambda/2)**2
+
+    return 2 * R * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 # =========================
 # CONFIG PREÇOS
@@ -155,9 +181,9 @@ with st.form("form_evento"):
     taxa_deslocamento = 0
     km = 0
 
-    # =========================
-    # CEP + DISTÂNCIA AUTOMÁTICA
-    # =========================
+    origem = None
+    destino = None
+
     if cep:
         try:
             resposta = requests.get(
@@ -175,8 +201,13 @@ with st.form("form_evento"):
 
                     st.success(f"{endereco_base} - {cidade}/{estado}")
 
-                    # DISTÂNCIA AUTOMÁTICA (SEM INPUT)
-                    km = calcular_km_falso(cidade)
+                    origem = pegar_lat_long(ENDERECO_EMPRESA_CEP)
+                    destino = pegar_lat_long(cep)
+
+                    if origem and destino:
+                        km = round(calcular_distancia_km(origem, destino), 2)
+                    else:
+                        km = 0
 
                     if km > 50:
                         taxa_deslocamento = (km - 50) * 2
@@ -265,7 +296,7 @@ with st.form("form_evento"):
             evento = {
                 "nome": nome,
                 "cpf": cpf_formatado,
-                "endereco": endereco_final if endereco_final.strip() != ",  - " else "Não informado",
+                "endereco": endereco_final,
                 "cidade": cidade,
                 "cep": cep,
                 "horario": str(horario),
@@ -309,7 +340,7 @@ else:
             elif (data_evento - date.today()).days == 1:
                 alerta = "⚠️ Evento amanhã"
 
-            mensagem = f"""
+            st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
 
@@ -324,8 +355,7 @@ else:
 
 💰 Total: R$ {evento.get('total')}  
 {alerta}
-"""
-            st.success(mensagem)
+""")
 
         with col2:
             if st.button("❌ Excluir", key=f"del_{i}"):

@@ -146,7 +146,6 @@ st.subheader("🎛️ Serviços extras")
 
 combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
 
-# 🔥 escolha do robô do combo
 robo_combo = None
 if combo_manual:
     robo_combo = st.radio(
@@ -187,7 +186,7 @@ if st.session_state.get("_salvar"):
     if combo_ativo:
         total += config["combo"]
 
-        # 🔥 aplica robô escolhido no combo
+        # 🔥 AGORA SALVA O ROBÔ DO COMBO CORRETAMENTE
         if robo_combo:
             robos = [robo_combo]
 
@@ -213,6 +212,7 @@ if st.session_state.get("_salvar"):
         "data": st.session_state["_data"],
         "tipo": st.session_state["_tipo"],
         "robos": robos,
+        "robo_combo": robo_combo,  # 🔥 ADICIONADO
         "letras": qtd_letras,
         "nome_letras": nome_letras,
         "tambor": tambor,

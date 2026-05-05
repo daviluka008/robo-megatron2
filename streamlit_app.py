@@ -135,6 +135,11 @@ with st.form("form_evento"):
         st.session_state["_horario"] = str(horario)
         st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
         st.session_state["_tipo"] = tipo
+
+        # 🔥 GARANTE ROBÔ MESMO SEM ESCOLHA
+        if len(robos) == 0:
+            robos = ["Megatron"]
+
         st.session_state["_robos"] = robos
         st.session_state["_salvar"] = True
 
@@ -173,7 +178,6 @@ if st.session_state.get("_salvar"):
     total = 0
 
     combo_auto = len(robos) >= 1 and tambor
-
     combo_ativo = combo_manual or combo_auto
 
     if combo_ativo:
@@ -235,8 +239,9 @@ else:
 
             extras = []
 
+            # 🔥 COMBO CORRIGIDO
             if evento.get("combo"):
-                extras.append("🔥 Combo ( Robô + Tambor LED )")  # ✔ CORRIGIDO DEFINITIVO
+                extras.append("🔥 Combo ( Robô + Tambor LED )")
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")
@@ -250,6 +255,15 @@ else:
             if evento.get("letras", 0) > 0:
                 extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")
 
+            robos_lista = evento.get("robos", [])
+
+            if not robos_lista:
+                robos_texto = "Megatron"
+                qtd = 1
+            else:
+                robos_texto = ", ".join(robos_lista)
+                qtd = len(robos_lista)
+
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
@@ -259,7 +273,7 @@ else:
 
 📍 Endereço: {evento.get('endereco')}  
 
-🤖 Robôs: {len(evento.get('robos', []))} ({", ".join(evento.get('robos', []))})  
+🤖 Robôs: {qtd} ({robos_texto})  
 🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
 
 💰 Total: R$ {evento.get('total')}  

@@ -74,7 +74,6 @@ st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
 
-    # DADOS
     nome = st.text_input("Nome do cliente")
     endereco = st.text_input("Endereço do evento")
     cep = st.text_input("CEP")
@@ -90,15 +89,12 @@ with st.form("form_evento"):
         "Casamento", "Festa", "15 anos", "Balada", "Outro"
     ])
 
-    # =========================
-    # ROBÔS (MISTO)
-    # =========================
-
+    # ROBÔS
     st.write("🤖 Quantidade de cada robô (máx. 7)")
 
-    qtd_megatron = st.number_input("Megatron", min_value=0, max_value=7, step=1)
-    qtd_bumblebee = st.number_input("Bumblebee", min_value=0, max_value=7, step=1)
-    qtd_tequileiro = st.number_input("Tequileiro", min_value=0, max_value=7, step=1)
+    qtd_megatron = st.number_input("Megatron", min_value=0, max_value=7)
+    qtd_bumblebee = st.number_input("Bumblebee", min_value=0, max_value=7)
+    qtd_tequileiro = st.number_input("Tequileiro", min_value=0, max_value=7)
 
     total_robos = qtd_megatron + qtd_bumblebee + qtd_tequileiro
 
@@ -111,10 +107,7 @@ with st.form("form_evento"):
         ["Tequileiro"] * qtd_tequileiro
     )
 
-    # =========================
     # SERVIÇOS
-    # =========================
-
     tambor = st.checkbox("🥁 Tambor LED")
     pista = st.checkbox("💃 Pista Paris")
     plataforma = st.checkbox("🎥 Plataforma 360")
@@ -123,22 +116,14 @@ with st.form("form_evento"):
     qtd_letras = 0
 
     if letras:
-        qtd_letras = st.number_input("Quantidade de letras", min_value=1, step=1)
+        qtd_letras = st.number_input("Quantidade de letras", min_value=1)
 
-    # =========================
     # DESLOCAMENTO
-    # =========================
-
     st.write("🚗 Deslocamento")
-
-    km = st.number_input("Distância (km)", min_value=0.0, step=1.0)
+    km = st.number_input("Distância (km)", min_value=0.0)
     taxa_deslocamento = km * 2
 
     salvar = st.form_submit_button("Salvar evento")
-
-    # =========================
-    # CÁLCULO
-    # =========================
 
     if salvar:
 
@@ -151,7 +136,6 @@ with st.form("form_evento"):
 
             valor_robos = qtd_robos * config["robo"]
 
-            # COMBO
             if qtd_robos >= 1 and tambor:
                 total += config["combo"]
 
@@ -163,7 +147,6 @@ with st.form("form_evento"):
                 if tambor:
                     total += config["tambor"]
 
-            # OUTROS
             if pista:
                 total += config["pista"]
 
@@ -173,7 +156,6 @@ with st.form("form_evento"):
             if letras:
                 total += qtd_letras * config["letra"]
 
-            # DESLOCAMENTO
             total += taxa_deslocamento
 
             evento = {
@@ -195,7 +177,7 @@ with st.form("form_evento"):
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA
+# LISTA (CORRIGIDA)
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -214,23 +196,29 @@ else:
         elif (data_evento - date.today()).days == 1:
             alerta = "⚠️ Evento amanhã"
 
-        robos_txt = f"{len(evento['robos'])} robôs: {', '.join(evento['robos'])}" if evento["robos"] else "Nenhum"
-        letras_txt = f"{evento['letras']} letras" if evento["letras"] > 0 else "Nenhuma"
+        # 🔥 CORREÇÃO AQUI
+        horario = evento.get("horario", "Não informado")
+        endereco = evento.get("endereco", "Não informado")
+        cep = evento.get("cep", "Não informado")
+        km = evento.get("km", 0)
+
+        robos_txt = f"{len(evento['robos'])} robôs: {', '.join(evento['robos'])}" if evento.get("robos") else "Nenhum"
+        letras_txt = f"{evento.get('letras', 0)} letras" if evento.get("letras", 0) > 0 else "Nenhuma"
 
         mensagem = f"""
-📌 Cliente: {evento['nome']}  
-📅 Data: {data_formatada} às {evento['horario']}  
-🎉 Tipo: {evento['tipo']}  
+📌 Cliente: {evento.get('nome', '')}  
+📅 Data: {data_formatada} às {horario}  
+🎉 Tipo: {evento.get('tipo', '')}  
 
-📍 Endereço: {evento['endereco']}  
-📮 CEP: {evento['cep']}  
+📍 Endereço: {endereco}  
+📮 CEP: {cep}  
 
 🤖 Robôs: {robos_txt}  
 🔠 Letras: {letras_txt}  
 
-🚗 Distância: {evento['km']} km  
+🚗 Distância: {km} km  
 
-💰 Total: R$ {evento['total']}  
+💰 Total: R$ {evento.get('total', 0)}  
 {alerta}
 """
 

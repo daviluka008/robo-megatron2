@@ -160,7 +160,6 @@ if letras:
     qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
     nome_letras = st.text_input("Nome das letras")
 
-# 🔥 NOVO: escolha do robô do combo
 robo_combo = None
 
 if combo_manual:
@@ -181,9 +180,9 @@ if st.session_state.get("_salvar"):
 
     robos = st.session_state["_robos"]
 
-    # 🔥 se combo ativo, substitui/define robô escolhido
+    # 🔥 CORREÇÃO FINAL (NÃO SOBRESCREVE MAIS)
     if combo_manual and robo_combo:
-        robos = [robo_combo]
+        robos = robos + [robo_combo]
 
     total = 0
 

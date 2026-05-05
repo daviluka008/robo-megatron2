@@ -116,8 +116,6 @@ with st.form("form_evento"):
     else:
         nome = st.text_input("Nome do cliente")
 
-    st.write("📍 Local do evento")
-
     cep = st.text_input("CEP")
 
     endereco_base = ""
@@ -126,9 +124,6 @@ with st.form("form_evento"):
 
     cidade = ""
 
-    # =========================
-    # CEP (SEM KM)
-    # =========================
     if cep:
         try:
             resposta = requests.get(
@@ -187,7 +182,7 @@ with st.form("form_evento"):
     salvar = st.form_submit_button("Salvar evento")
 
     # =========================
-    # CÁLCULO FINAL
+    # CÁLCULO
     # =========================
 
     if salvar:
@@ -223,14 +218,19 @@ with st.form("form_evento"):
             evento = {
                 "nome": nome,
                 "cpf": cpf_formatado,
-                "endereco": endereco_final if endereco_final.strip() != ",  - " else "Não informado",
+                "endereco": endereco_final,
                 "cidade": cidade,
                 "horario": str(horario),
                 "data": data_evento.strftime("%Y-%m-%d"),
                 "tipo": tipo,
                 "total": total,
                 "robos": robos,
-                "letras": qtd_letras if letras else 0
+                "letras": qtd_letras if letras else 0,
+
+                # ✅ SERVIÇOS SALVOS CORRETAMENTE
+                "tambor": tambor,
+                "pista": pista,
+                "plataforma": plataforma
             }
 
             st.session_state.eventos.append(evento)
@@ -265,6 +265,22 @@ else:
             elif (data_evento - date.today()).days == 1:
                 alerta = "⚠️ Evento amanhã"
 
+            # =========================
+            # SERVIÇOS EXTRAS MOSTRADOS
+            # =========================
+            extras = []
+
+            if evento.get("tambor"):
+                extras.append("🥁 Tambor LED")
+
+            if evento.get("pista"):
+                extras.append("💃 Pista Paris")
+
+            if evento.get("plataforma"):
+                extras.append("🎥 Plataforma 360")
+
+            servicos_texto = ", ".join(extras) if extras else "Nenhum serviço extra"
+
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
@@ -275,6 +291,7 @@ else:
 📍 Endereço: {evento.get('endereco')}  
 
 🤖 Robôs: {len(evento['robos'])}  
+🎛️ Serviços: {servicos_texto}  
 
 💰 Total: R$ {evento.get('total')}  
 {alerta}

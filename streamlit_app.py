@@ -174,14 +174,14 @@ if st.session_state.get("_salvar"):
 
     combo_auto = len(robos) >= 1 and tambor
 
-    if combo_manual or combo_auto:
+    combo_ativo = combo_manual or combo_auto
+
+    if combo_ativo:
         total += config["combo"]
-        combo_ativo = True
     else:
         total += len(robos) * config["robo"]
         if tambor:
             total += config["tambor"]
-        combo_ativo = False
 
     if pista:
         total += config["pista"]
@@ -235,9 +235,8 @@ else:
 
             extras = []
 
-            # 🔥 CORREÇÃO DEFINITIVA DO TEXTO DO COMBO
             if evento.get("combo"):
-                extras.append("🔥 Combo ( Robô + Tambor LED )")
+                extras.append("🔥 Combo ( Robô + Tambor LED )")  # ✔ CORRIGIDO DEFINITIVO
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")

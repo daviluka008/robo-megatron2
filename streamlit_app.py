@@ -9,6 +9,13 @@ st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 st.title("📋 Controle de Eventos - Megatron")
 
 # =========================
+# ENDEREÇO FIXO EMPRESA
+# =========================
+
+ENDERECO_EMPRESA = "Rua Professor Enéas de Siqueira Neto, 565, São Paulo - SP, 04829300"
+CEP_EMPRESA = "04829300"
+
+# =========================
 # ARQUIVOS
 # =========================
 
@@ -61,6 +68,25 @@ def buscar_cliente(cpf):
         if c["cpf"] == cpf:
             return c
     return None
+
+# =========================
+# SIMULAÇÃO DE DISTÂNCIA
+# =========================
+
+def calcular_km_falso(cidade):
+    if not cidade:
+        return 0
+
+    cidade = cidade.lower()
+
+    if "são paulo" in cidade:
+        return 20
+    elif "juquitiba" in cidade:
+        return 70
+    elif "embu" in cidade or "embú" in cidade:
+        return 35
+    else:
+        return 60
 
 # =========================
 # CONFIG PREÇOS
@@ -125,11 +151,12 @@ with st.form("form_evento"):
     complemento = st.text_input("Complemento")
 
     cidade = ""
+    estado = ""
     taxa_deslocamento = 0
     km = 0
 
     # =========================
-    # CEP (CORRIGIDO)
+    # CEP + DISTÂNCIA AUTOMÁTICA
     # =========================
     if cep:
         try:
@@ -148,21 +175,20 @@ with st.form("form_evento"):
 
                     st.success(f"{endereco_base} - {cidade}/{estado}")
 
-                    if cidade.lower() != "são paulo":
-                        st.warning("🚗 Fora da capital (até 50km sem custo)")
+                    # DISTÂNCIA AUTOMÁTICA (SEM INPUT)
+                    km = calcular_km_falso(cidade)
 
-                        km = st.number_input("Distância (km)", min_value=1.0)
-
-                        if km > 50:
-                            taxa_deslocamento = (km - 50) * 2
-                            st.info(f"💰 Taxa de deslocamento: R$ {(km - 50) * 2}")
-                        else:
-                            taxa_deslocamento = 0
-                            st.info("Sem taxa de deslocamento (até 50km)")
+                    if km > 50:
+                        taxa_deslocamento = (km - 50) * 2
+                        st.warning("🚗 Fora da capital (até 50km grátis)")
+                        st.info(f"💰 Taxa de deslocamento: R$ {(km - 50) * 2}")
                     else:
-                        st.info("Sem taxa de deslocamento (capital)")
+                        taxa_deslocamento = 0
+                        st.info("Sem taxa de deslocamento (até 50km)")
+
                 else:
                     st.error("CEP não encontrado")
+
             else:
                 st.error("Erro na consulta do CEP")
 
@@ -201,7 +227,7 @@ with st.form("form_evento"):
     salvar = st.form_submit_button("Salvar evento")
 
     # =========================
-    # CÁLCULO
+    # CÁLCULO FINAL
     # =========================
 
     if salvar:
@@ -239,7 +265,7 @@ with st.form("form_evento"):
             evento = {
                 "nome": nome,
                 "cpf": cpf_formatado,
-                "endereco": endereco_final,
+                "endereco": endereco_final if endereco_final.strip() != ",  - " else "Não informado",
                 "cidade": cidade,
                 "cep": cep,
                 "horario": str(horario),

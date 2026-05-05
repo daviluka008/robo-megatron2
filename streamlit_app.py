@@ -19,11 +19,21 @@ if "ativo" not in st.session_state:
 st.title("🎉🤖 Megatron Kronos - Show de Robôs")
 
 # =========================================
-# IMAGEM INICIAL (ANTES DO EVENTO)
+# FUNÇÃO SEGURA PRA IMAGEM
+# =========================================
+
+def mostrar_imagem(caminho):
+    try:
+        st.image(caminho, use_container_width=True)
+    except:
+        st.warning(f"Erro ao carregar imagem: {caminho}")
+
+# =========================================
+# IMAGEM INICIAL
 # =========================================
 
 if not st.session_state.ativo:
-    st.image("robo1.png", use_container_width=True)
+    mostrar_imagem("robo1.png")
 
 # =========================================
 # CONTROLES
@@ -49,7 +59,7 @@ with col3:
             st.session_state.energia += 40
 
 # =========================================
-# SHOW COM ROBÔS (DEPOIS QUE INICIA)
+# SHOW
 # =========================================
 
 if st.session_state.ativo:
@@ -59,10 +69,10 @@ if st.session_state.ativo:
     colA, colB = st.columns(2)
 
     with colA:
-        st.image("robo1.png", use_container_width=True)
+        mostrar_imagem("robo1.png")
 
     with colB:
-        st.image("robo2.png", use_container_width=True)
+        mostrar_imagem("robo2.png")
 
     st.success("🤖 Robôs Megatron dominando a pista!")
     st.info("💃 Coreografia sincronizada")

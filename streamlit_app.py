@@ -128,32 +128,43 @@ with st.form("form_evento"):
     taxa_deslocamento = 0
     km = 0
 
+    # =========================
+    # CEP (CORRIGIDO)
+    # =========================
     if cep:
         try:
-            resposta = requests.get(f"https://viacep.com.br/ws/{cep}/json/").json()
+            resposta = requests.get(
+                f"https://viacep.com.br/ws/{cep}/json/",
+                timeout=5
+            )
 
-            if "erro" not in resposta:
-                endereco_base = resposta["logradouro"]
-                cidade = resposta["localidade"]
-                estado = resposta["uf"]
+            if resposta.status_code == 200:
+                dados = resposta.json()
 
-                st.success(f"{endereco_base} - {cidade}/{estado}")
+                if "erro" not in dados:
+                    endereco_base = dados.get("logradouro", "")
+                    cidade = dados.get("localidade", "")
+                    estado = dados.get("uf", "")
 
-                if cidade.lower() != "são paulo":
-                    st.warning("🚗 Fora da capital (até 50km sem custo)")
-                    km = st.number_input("Distância (km)", min_value=1.0)
+                    st.success(f"{endereco_base} - {cidade}/{estado}")
 
-                    if km > 50:
-                        taxa_deslocamento = (km - 50) * 2
-                        st.info(f"💰 Taxa de deslocamento: R$ {(km - 50) * 2}")
+                    if cidade.lower() != "são paulo":
+                        st.warning("🚗 Fora da capital (até 50km sem custo)")
+
+                        km = st.number_input("Distância (km)", min_value=1.0)
+
+                        if km > 50:
+                            taxa_deslocamento = (km - 50) * 2
+                            st.info(f"💰 Taxa de deslocamento: R$ {(km - 50) * 2}")
+                        else:
+                            taxa_deslocamento = 0
+                            st.info("Sem taxa de deslocamento (até 50km)")
                     else:
-                        taxa_deslocamento = 0
-                        st.info("Sem taxa de deslocamento (até 50km)")
+                        st.info("Sem taxa de deslocamento (capital)")
                 else:
-                    st.info("Sem taxa de deslocamento (capital)")
-
+                    st.error("CEP não encontrado")
             else:
-                st.error("CEP inválido")
+                st.error("Erro na consulta do CEP")
 
         except:
             st.error("Erro ao buscar CEP")
@@ -170,8 +181,6 @@ with st.form("form_evento"):
     qtd_megatron = st.number_input("Megatron", 0, 7)
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
     qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
-
-    total_robos = qtd_megatron + qtd_bumblebee + qtd_tequileiro
 
     robos = (
         ["Megatron"] * qtd_megatron +
@@ -191,26 +200,28 @@ with st.form("form_evento"):
 
     salvar = st.form_submit_button("Salvar evento")
 
+    # =========================
+    # CÁLCULO
+    # =========================
+
     if salvar:
 
         if not validar_cpf(cpf_input):
             st.error("CPF inválido!")
             st.stop()
 
-        if total_robos > 7:
+        if len(robos) > 7:
             st.error("Máximo de 7 robôs.")
         else:
 
             total = 0
-
-            valor_robos = len(robos) * config["robo"]
 
             if len(robos) >= 1 and tambor:
                 total += config["combo"]
                 if len(robos) > 1:
                     total += (len(robos) - 1) * config["robo"]
             else:
-                total += valor_robos
+                total += len(robos) * config["robo"]
                 if tambor:
                     total += config["tambor"]
 
@@ -244,16 +255,13 @@ with st.form("form_evento"):
             salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
 
             if not cliente_existente:
-                clientes.append({
-                    "nome": nome,
-                    "cpf": cpf_formatado
-                })
+                clientes.append({"nome": nome, "cpf": cpf_formatado})
                 salvar_dados(ARQUIVO_CLIENTES, clientes)
 
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA DE EVENTOS (ATUALIZADA)
+# LISTA DE EVENTOS
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -263,7 +271,7 @@ if not st.session_state.eventos:
 else:
     for i, evento in enumerate(st.session_state.eventos):
 
-        col1, col2 = st.columns([4,1])
+        col1, col2 = st.columns([4, 1])
 
         with col1:
             data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")

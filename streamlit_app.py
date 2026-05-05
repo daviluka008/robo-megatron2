@@ -53,7 +53,6 @@ def formatar_cpf(cpf):
         return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
     return cpf
 
-# CLIENTES
 clientes = carregar_dados(ARQUIVO_CLIENTES, [])
 
 def buscar_cliente(cpf):
@@ -63,7 +62,7 @@ def buscar_cliente(cpf):
     return None
 
 # =========================
-# CONFIG PREÇOS
+# CONFIG
 # =========================
 
 config_padrao = {
@@ -79,12 +78,8 @@ config = carregar_dados(ARQUIVO_CONFIG, config_padrao)
 
 st.sidebar.header("⚙️ Configurar preços")
 
-config["robo"] = st.sidebar.number_input("Robô", value=config["robo"])
-config["tambor"] = st.sidebar.number_input("Tambor", value=config["tambor"])
-config["combo"] = st.sidebar.number_input("Combo", value=config["combo"])
-config["pista"] = st.sidebar.number_input("Pista", value=config["pista"])
-config["plataforma"] = st.sidebar.number_input("Plataforma", value=config["plataforma"])
-config["letra"] = st.sidebar.number_input("Letra", value=config["letra"])
+for key in config.keys():
+    config[key] = st.sidebar.number_input(key.capitalize(), value=config[key])
 
 if st.sidebar.button("💾 Salvar preços"):
     salvar_dados(ARQUIVO_CONFIG, config)
@@ -111,12 +106,9 @@ with st.form("form_evento"):
     cliente_existente = buscar_cliente(cpf_formatado)
 
     if cliente_existente:
-        st.success("Cliente encontrado 👇")
         nome = st.text_input("Nome", value=cliente_existente["nome"])
     else:
         nome = st.text_input("Nome do cliente")
-
-    st.subheader("📍 Endereço")
 
     cep = st.text_input("CEP")
     endereco = st.text_input("Endereço")
@@ -128,26 +120,18 @@ with st.form("form_evento"):
     if cep:
         try:
             r = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
-            if r.status_code == 200:
-                data = r.json()
-                if "erro" not in data:
-                    cidade = data.get("localidade", "")
-                    st.success(f"📍 {cidade}")
+            data = r.json()
+            if "erro" not in data:
+                cidade = data.get("localidade", "")
         except:
-            st.warning("Erro ao consultar CEP")
+            pass
 
-    endereco_final = endereco
-    if numero:
-        endereco_final += f", {numero}"
-    if complemento:
-        endereco_final += f" - {complemento}"
+    endereco_final = f"{endereco}, {numero} - {complemento}"
 
-    horario = st.time_input("Horário do evento")
-    data_evento = st.date_input("Data do evento", min_value=date.today())
+    horario = st.time_input("Horário")
+    data_evento = st.date_input("Data", min_value=date.today())
 
-    tipo = st.selectbox("Tipo de evento", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
-
-    st.write("🤖 Robôs (máx. 7)")
+    tipo = st.selectbox("Tipo", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
 
     qtd_megatron = st.number_input("Megatron", 0, 7)
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
@@ -163,155 +147,132 @@ with st.form("form_evento"):
     pista = st.checkbox("💃 Pista Paris")
     plataforma = st.checkbox("🎥 Plataforma 360")
 
-    # =========================
-    # LETRAS (CORRIGIDO UX)
-    # =========================
-
-    letras = st.checkbox("🔠 Letras luminosas")
-
-    qtd_letras = st.number_input(
-        "Quantidade de letras",
-        min_value=0,
-        value=0 if not letras else 1,
-        disabled=not letras
-    )
-
-    nome_letras = st.text_input(
-        "Nome das letras (ex: DAVI, 15 ANOS)",
-        disabled=not letras
-    )
-
     combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
 
     salvar = st.form_submit_button("Salvar evento")
 
-    # =========================
-    # CÁLCULO
-    # =========================
+# =========================
+# 🔥 LETRAS FORA DO FORM (CORRETO)
+# =========================
 
-    if salvar:
+st.subheader("🔠 Letras luminosas")
 
-        if not validar_cpf(cpf_input):
-            st.error("CPF inválido!")
-            st.stop()
+letras = st.checkbox("Ativar letras", key="letras")
 
-        if len(robos) > 7:
-            st.error("Máximo de 7 robôs.")
-        else:
+if "letras" not in st.session_state:
+    st.session_state.letras = False
 
-            total = 0
-            qtd_robos = len(robos)
+st.session_state.letras = letras
 
-            combo_auto = qtd_robos >= 1 and tambor
-
-            if combo_manual or combo_auto:
-                total += config["combo"]
-            else:
-                total += qtd_robos * config["robo"]
-                if tambor:
-                    total += config["tambor"]
-
-            if pista:
-                total += config["pista"]
-
-            if plataforma:
-                total += config["plataforma"]
-
-            if letras:
-                total += qtd_letras * config["letra"]
-
-            evento = {
-                "nome": nome,
-                "cpf": cpf_formatado,
-                "endereco": endereco_final,
-                "cidade": cidade,
-                "horario": str(horario),
-                "data": data_evento.strftime("%Y-%m-%d"),
-                "tipo": tipo,
-                "total": total,
-                "robos": robos,
-                "letras": qtd_letras if letras else 0,
-                "nome_letras": nome_letras,
-                "tambor": tambor,
-                "pista": pista,
-                "plataforma": plataforma,
-                "combo": combo_manual or combo_auto
-            }
-
-            st.session_state.eventos.append(evento)
-            salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
-
-            if not cliente_existente:
-                clientes.append({"nome": nome, "cpf": cpf_formatado})
-                salvar_dados(ARQUIVO_CLIENTES, clientes)
-
-            st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
+if st.session_state.letras:
+    qtd_letras = st.number_input("Quantidade de letras", min_value=1, key="qtd_letras")
+    nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)", key="nome_letras")
+else:
+    qtd_letras = 0
+    nome_letras = ""
 
 # =========================
-# LISTA DE EVENTOS
+# CÁLCULO
+# =========================
+
+if salvar:
+
+    if not validar_cpf(cpf_input):
+        st.error("CPF inválido!")
+        st.stop()
+
+    total = 0
+    qtd_robos = len(robos)
+
+    combo_auto = qtd_robos >= 1 and tambor
+
+    if combo_manual or combo_auto:
+        total += config["combo"]
+    else:
+        total += qtd_robos * config["robo"]
+        if tambor:
+            total += config["tambor"]
+
+    if pista:
+        total += config["pista"]
+
+    if plataforma:
+        total += config["plataforma"]
+
+    if letras:
+        total += qtd_letras * config["letra"]
+
+    evento = {
+        "nome": nome,
+        "cpf": cpf_formatado,
+        "endereco": endereco_final,
+        "cidade": cidade,
+        "horario": str(horario),
+        "data": data_evento.strftime("%Y-%m-%d"),
+        "tipo": tipo,
+        "total": total,
+        "robos": robos,
+        "letras": qtd_letras,
+        "nome_letras": nome_letras,
+        "tambor": tambor,
+        "pista": pista,
+        "plataforma": plataforma,
+        "combo": combo_manual or combo_auto
+    }
+
+    st.session_state.eventos.append(evento)
+    salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+
+    st.success(f"Evento cadastrado! 💰 R$ {total}")
+
+# =========================
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")
 
-if not st.session_state.eventos:
-    st.info("Nenhum evento cadastrado")
-else:
-    for i, evento in enumerate(st.session_state.eventos):
+for i, evento in enumerate(st.session_state.eventos):
 
-        col1, col2 = st.columns([4, 1])
+    col1, col2 = st.columns([4, 1])
 
-        with col1:
+    with col1:
 
-            data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
-            data_evento = date.fromisoformat(evento["data"])
+        extras = []
 
-            alerta = ""
-            if data_evento == date.today():
-                alerta = "🚨 EVENTO HOJE!"
-            elif (data_evento - date.today()).days == 1:
-                alerta = "⚠️ Evento amanhã"
+        if evento.get("tambor"):
+            extras.append("🥁 Tambor LED")
 
-            extras = []
+        if evento.get("pista"):
+            extras.append("💃 Pista Paris")
 
-            if evento.get("tambor"):
-                extras.append("🥁 Tambor LED")
+        if evento.get("plataforma"):
+            extras.append("🎥 Plataforma 360")
 
-            if evento.get("pista"):
-                extras.append("💃 Pista Paris")
+        if evento.get("combo"):
+            extras.append("🔥 Combo (Robô + Tambor LED)")
 
-            if evento.get("plataforma"):
-                extras.append("🎥 Plataforma 360")
+        if evento.get("letras", 0) > 0:
+            extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")
 
-            if evento.get("combo"):
-                extras.append("🔥 Combo (Robô + Tambor LED)")
+        robos_texto = ", ".join(evento.get("robos", []))
 
-            robos_texto = ", ".join(evento.get("robos", []))
-            qtd_robos = len(evento.get("robos", []))
-            if qtd_robos == 0:
-                qtd_robos = 1
-
-            extras.append(f"🔠 Letras: {evento.get('nome_letras', 'Não informado')}")
-
-            st.success(f"""
+        st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
 
-📅 Data: {data_formatada} às {evento.get('horario')}  
+📅 Data: {evento.get('data')} às {evento.get('horario')}  
 🎉 Tipo: {evento.get('tipo')}  
 
 📍 Endereço: {evento.get('endereco')}  
 
-🤖 Robôs: {qtd_robos} ({robos_texto})  
+🤖 Robôs: {len(evento.get('robos', []))} ({robos_texto})  
 🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
 
 💰 Total: R$ {evento.get('total')}  
-{alerta}
 """)
 
-        with col2:
-            if st.button("❌ Excluir", key=f"del_{i}"):
-                st.session_state.eventos.pop(i)
-                salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
-                st.rerun()
-
-        st.divider()
+    with col2:
+        if st.button("❌ Excluir", key=f"del_{i}"):
+            st.session_state.eventos.pop(i)
+            salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+            st.rerun()

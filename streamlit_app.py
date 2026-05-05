@@ -96,6 +96,7 @@ st.header("➕ Novo Evento")
 with st.form("form_evento"):
 
     cpf_input = st.text_input("CPF")
+    telefone = st.text_input("Telefone")  # 🔥 NOVO
     cpf_formatado = formatar_cpf(cpf_input)
 
     cliente_existente = next((c for c in clientes if c["cpf"] == cpf_formatado), None)
@@ -119,7 +120,7 @@ with st.form("form_evento"):
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
     qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
 
-    robos_base = (
+    robos = (
         ["Megatron"] * qtd_megatron +
         ["Bumblebee"] * qtd_bumblebee +
         ["Tequileiro"] * qtd_tequileiro
@@ -129,13 +130,14 @@ with st.form("form_evento"):
 
     if salvar:
         st.session_state["_cpf"] = cpf_input
+        st.session_state["_telefone"] = telefone  # 🔥 NOVO
         st.session_state["_cpf_formatado"] = cpf_formatado
         st.session_state["_nome"] = nome
         st.session_state["_endereco"] = f"{endereco}, {numero} - {complemento}"
         st.session_state["_horario"] = str(horario)
         st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
         st.session_state["_tipo"] = tipo
-        st.session_state["_robos"] = robos_base
+        st.session_state["_robos"] = robos
         st.session_state["_salvar"] = True
 
 # =========================
@@ -144,15 +146,7 @@ with st.form("form_evento"):
 
 st.subheader("🎛️ Serviços extras")
 
-combo_manual = st.checkbox("🔥 Combo (Robô + Tambor de LED)")
-
-robos_combo = None
-if combo_manual:
-    robos_combo = st.selectbox(
-        "🤖 Qual robô no combo?",
-        ["Megatron", "Bumblebee", "Tequileiro"]
-    )
-
+combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
 tambor = st.checkbox("🥁 Tambor LED")
 pista = st.checkbox("💃 Pista Paris")
 plataforma = st.checkbox("🎥 Plataforma 360")
@@ -176,15 +170,11 @@ if st.session_state.get("_salvar"):
         st.error("CPF inválido!")
         st.stop()
 
-    robos = st.session_state["_robos"].copy()
-
-    # 🔥 AQUI ENTRA O ROBÔ DO COMBO
-    if combo_manual and robos_combo:
-        robos.append(robos_combo)
+    robos = st.session_state["_robos"]
 
     total = 0
 
-    combo_auto = combo_manual and tambor
+    combo_auto = len(robos) >= 1 and tambor
 
     if combo_manual or combo_auto:
         total += config["combo"]
@@ -205,6 +195,7 @@ if st.session_state.get("_salvar"):
     evento = {
         "nome": st.session_state["_nome"],
         "cpf": st.session_state["_cpf_formatado"],
+        "telefone": st.session_state["_telefone"],  # 🔥 NOVO
         "endereco": st.session_state["_endereco"],
         "horario": st.session_state["_horario"],
         "data": st.session_state["_data"],
@@ -246,14 +237,11 @@ else:
             extras = []
 
             if evento.get("combo"):
-                extras.append("🔥 Combo (Robô + Tambor de LED)")
-
+                extras.append("🔥 Combo (Robô + Tambor LED)")
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")
-
             if evento.get("pista"):
                 extras.append("💃 Pista Paris")
-
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
 
@@ -262,6 +250,7 @@ else:
 
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
+📞 Telefone: {evento.get('telefone','Não informado')}  
 🧾 CPF: {evento.get('cpf')}  
 
 📅 Data: {data_formatada} às {evento.get('horario')}  

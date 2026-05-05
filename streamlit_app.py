@@ -84,10 +84,10 @@ if st.sidebar.button("💾 Salvar preços"):
     st.sidebar.success("Preços salvos!")
 
 # =========================
-# SERVIÇOS (FORA DO FORM = DINÂMICO)
+# SERVIÇOS (FORA DO FORM)
 # =========================
 
-st.write("🎛️ Serviços extras")
+st.subheader("🎛️ Serviços extras")
 
 combo_manual = st.checkbox("(Robô + Tambor LED)")
 tambor = st.checkbox("🥁 Tambor LED")
@@ -101,16 +101,17 @@ nome_letras = ""
 
 if letras:
     qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
-    nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)")
+    nome_letras = st.text_input("Nome das letras")
 
 # =========================
-# FORMULÁRIO (SÓ DADOS)
+# FORMULÁRIO (DADOS PRIMEIRO)
 # =========================
 
 st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
 
+    # DADOS
     cpf_input = st.text_input("CPF")
     cpf_formatado = formatar_cpf(cpf_input)
 
@@ -126,10 +127,10 @@ with st.form("form_evento"):
     numero = st.text_input("Número")
     complemento = st.text_input("Complemento")
 
-    horario = st.time_input("Horário")
+    horario = st.time_input("Horário do evento")
     data_evento = st.date_input("Data", min_value=date.today())
 
-    tipo = st.selectbox("Tipo", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
+    tipo = st.selectbox("Tipo de evento", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
 
     qtd_megatron = st.number_input("Megatron", 0, 7)
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)

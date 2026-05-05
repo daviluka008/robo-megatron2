@@ -105,7 +105,6 @@ st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
 
-    # CPF + AUTO CLIENTE
     cpf_input = st.text_input("CPF")
     cpf_formatado = formatar_cpf(cpf_input)
 
@@ -116,10 +115,6 @@ with st.form("form_evento"):
         nome = st.text_input("Nome", value=cliente_existente["nome"])
     else:
         nome = st.text_input("Nome do cliente")
-
-    # =========================
-    # ENDEREÇO
-    # =========================
 
     st.write("📍 Local do evento")
 
@@ -145,11 +140,17 @@ with st.form("form_evento"):
                 st.success(f"{endereco_base} - {cidade}/{estado}")
 
                 if cidade.lower() != "são paulo":
-                    st.warning("🚗 Fora da capital")
+                    st.warning("🚗 Fora da capital (até 50km sem custo)")
                     km = st.number_input("Distância (km)", min_value=1.0)
-                    taxa_deslocamento = km * 2
+
+                    if km > 50:
+                        taxa_deslocamento = (km - 50) * 2
+                        st.info(f"💰 Taxa de deslocamento: R$ {(km - 50) * 2}")
+                    else:
+                        taxa_deslocamento = 0
+                        st.info("Sem taxa de deslocamento (até 50km)")
                 else:
-                    st.info("Sem taxa de deslocamento")
+                    st.info("Sem taxa de deslocamento (capital)")
 
             else:
                 st.error("CEP inválido")
@@ -160,14 +161,9 @@ with st.form("form_evento"):
     endereco_final = f"{endereco_base}, {numero} - {complemento}"
 
     horario = st.time_input("Horário do evento")
-
-    data_evento = st.date_input("Data do evento", min_value=date.today(), format="DD/MM/YYYY")
+    data_evento = st.date_input("Data do evento", min_value=date.today())
 
     tipo = st.selectbox("Tipo de evento", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
-
-    # =========================
-    # ROBÔS
-    # =========================
 
     st.write("🤖 Robôs (máx. 7)")
 
@@ -183,10 +179,6 @@ with st.form("form_evento"):
         ["Tequileiro"] * qtd_tequileiro
     )
 
-    # =========================
-    # SERVIÇOS
-    # =========================
-
     tambor = st.checkbox("🥁 Tambor LED")
     pista = st.checkbox("💃 Pista Paris")
     plataforma = st.checkbox("🎥 Plataforma 360")
@@ -199,10 +191,6 @@ with st.form("form_evento"):
 
     salvar = st.form_submit_button("Salvar evento")
 
-    # =========================
-    # CÁLCULO
-    # =========================
-
     if salvar:
 
         if not validar_cpf(cpf_input):
@@ -214,14 +202,13 @@ with st.form("form_evento"):
         else:
 
             total = 0
-            qtd_robos = len(robos)
 
-            valor_robos = qtd_robos * config["robo"]
+            valor_robos = len(robos) * config["robo"]
 
-            if qtd_robos >= 1 and tambor:
+            if len(robos) >= 1 and tambor:
                 total += config["combo"]
-                if qtd_robos > 1:
-                    total += (qtd_robos - 1) * config["robo"]
+                if len(robos) > 1:
+                    total += (len(robos) - 1) * config["robo"]
             else:
                 total += valor_robos
                 if tambor:
@@ -256,7 +243,6 @@ with st.form("form_evento"):
             st.session_state.eventos.append(evento)
             salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
 
-            # SALVAR CLIENTE
             if not cliente_existente:
                 clientes.append({
                     "nome": nome,
@@ -267,7 +253,7 @@ with st.form("form_evento"):
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA
+# LISTA DE EVENTOS (ATUALIZADA)
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -275,18 +261,21 @@ st.header("📅 Agenda de Eventos")
 if not st.session_state.eventos:
     st.info("Nenhum evento cadastrado")
 else:
-    for evento in st.session_state.eventos:
+    for i, evento in enumerate(st.session_state.eventos):
 
-        data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
-        data_evento = date.fromisoformat(evento["data"])
+        col1, col2 = st.columns([4,1])
 
-        alerta = ""
-        if data_evento == date.today():
-            alerta = "🚨 EVENTO HOJE!"
-        elif (data_evento - date.today()).days == 1:
-            alerta = "⚠️ Evento amanhã"
+        with col1:
+            data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
+            data_evento = date.fromisoformat(evento["data"])
 
-        mensagem = f"""
+            alerta = ""
+            if data_evento == date.today():
+                alerta = "🚨 EVENTO HOJE!"
+            elif (data_evento - date.today()).days == 1:
+                alerta = "⚠️ Evento amanhã"
+
+            mensagem = f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
 
@@ -302,6 +291,12 @@ else:
 💰 Total: R$ {evento.get('total')}  
 {alerta}
 """
+            st.success(mensagem)
 
-        st.success(mensagem)
+        with col2:
+            if st.button("❌ Excluir", key=f"del_{i}"):
+                st.session_state.eventos.pop(i)
+                salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+                st.rerun()
+
         st.divider()

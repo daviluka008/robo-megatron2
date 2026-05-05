@@ -135,11 +135,6 @@ with st.form("form_evento"):
         st.session_state["_horario"] = str(horario)
         st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
         st.session_state["_tipo"] = tipo
-
-        # 🔥 GARANTE ROBÔ MESMO SEM ESCOLHA
-        if len(robos) == 0:
-            robos = ["Megatron"]
-
         st.session_state["_robos"] = robos
         st.session_state["_salvar"] = True
 
@@ -149,7 +144,16 @@ with st.form("form_evento"):
 
 st.subheader("🎛️ Serviços extras")
 
-combo_manual = st.checkbox("Combo (Robô + Tambor LED)")
+combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
+
+# 🔥 escolha do robô do combo
+robo_combo = None
+if combo_manual:
+    robo_combo = st.radio(
+        "Escolha o robô do combo:",
+        ["Megatron", "Bumblebee", "Tequileiro"]
+    )
+
 tambor = st.checkbox("🥁 Tambor LED")
 pista = st.checkbox("💃 Pista Paris")
 plataforma = st.checkbox("🎥 Plataforma 360")
@@ -182,6 +186,11 @@ if st.session_state.get("_salvar"):
 
     if combo_ativo:
         total += config["combo"]
+
+        # 🔥 aplica robô escolhido no combo
+        if robo_combo:
+            robos = [robo_combo]
+
     else:
         total += len(robos) * config["robo"]
         if tambor:
@@ -239,7 +248,6 @@ else:
 
             extras = []
 
-            # 🔥 COMBO CORRIGIDO
             if evento.get("combo"):
                 extras.append("🔥 Combo ( Robô + Tambor LED )")
 

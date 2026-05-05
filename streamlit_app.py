@@ -1,17 +1,12 @@
 import streamlit as st
-import time
 
-# =========================================
-# 🎉 CONFIG
-# =========================================
+st.set_page_config(page_title="Megatron Show", page_icon="🤖")
 
-st.set_page_config(page_title="🎉 Megatron Control", page_icon="🤖")
+st.title("🎉🤖 Megatron Show - Controle de Festa")
 
-st.title("🎉🤖 Painel de Controle - Megatron Eventos")
-
-# =========================================
-# 📊 ESTADO DO EVENTO
-# =========================================
+# =============================
+# ESTADO
+# =============================
 
 if "energia" not in st.session_state:
     st.session_state.energia = 0
@@ -19,70 +14,44 @@ if "energia" not in st.session_state:
 if "ativo" not in st.session_state:
     st.session_state.ativo = False
 
-# =========================================
-# 🎛️ CONTROLES DO EVENTO
-# =========================================
+# =============================
+# CONTROLES
+# =============================
 
-evento = st.selectbox(
-    "🎉 Tipo de evento",
-    ["Aniversário", "Casamento", "Formatura", "Festa Infantil"]
-)
-
-nivel = st.slider("🔥 Intensidade da festa", 1, 10, 5)
-
-col1, col2, col3 = st.columns(3)
+col1, col2 = st.columns(2)
 
 with col1:
-    if st.button("▶ Iniciar festa"):
+    if st.button("▶ Iniciar Show"):
         st.session_state.ativo = True
-        st.session_state.energia = 10
+        st.session_state.energia = 20
 
 with col2:
-    if st.button("🤖 Ativar robôs"):
+    if st.button("🤖 Ativar Robô"):
         if st.session_state.ativo:
-            st.session_state.energia += 25
-        else:
-            st.warning("Inicie o evento primeiro")
+            st.session_state.energia += 30
 
-with col3:
-    if st.button("🎉 Boost de energia"):
-        if st.session_state.ativo:
-            st.session_state.energia += 15
-
-# =========================================
-# 🤖 ROBÔS EM AÇÃO
-# =========================================
+# =============================
+# VISUAL DO ROBÔ
+# =============================
 
 if st.session_state.ativo:
 
-    st.subheader("🤖 Show dos Robôs")
+    st.subheader("🤖 Megatron em ação")
 
-    st.write("🤖 Megatron entrou na pista!")
-    st.write("💃 Robô dançarino ativado!")
-    st.write("🎤 Robô animador chamando o público!")
-    st.write("✨ Luzes sincronizadas com a música!")
+    # GIF (troca depois se quiser)
+    st.image("https://media.giphy.com/media/l0MYt5jPR6QX5pnqM/giphy.gif")
 
-# =========================================
-# 📊 ENERGIA DA FESTA
-# =========================================
+    st.write("🔥 Robô dançando com luzes!")
+    st.write("🎉 Público animado!")
 
-st.subheader("📊 Energia do evento")
+# =============================
+# ENERGIA
+# =============================
 
 energia = st.session_state.energia
 
 st.progress(min(energia / 100, 1.0))
-
-st.write(f"🔥 Energia atual: {energia}/100")
-
-# =========================================
-# 🎉 STATUS FINAL
-# =========================================
+st.write(f"🔥 Energia: {energia}/100")
 
 if energia >= 100:
-    st.success("🎉 FESTA NO MÁXIMO! PÚBLICO EM ÊXTASE 🤯🔥")
-elif energia >= 60:
-    st.info("🎊 Festa muito animada!")
-elif energia > 0:
-    st.warning("🎵 Festa começando...")
-else:
-    st.write("⏳ Evento parado")
+    st.success("🎉 FESTA EXPLODIU!")

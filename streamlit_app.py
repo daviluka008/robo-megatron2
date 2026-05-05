@@ -69,7 +69,7 @@ def buscar_cliente(cpf):
 config_padrao = {
     "robo": 1200,
     "tambor": 2800,
-    "combo": 3000,
+    "combo": 3000,  # preço com desconto
     "pista": 4000,
     "plataforma": 2500,
     "letra": 200
@@ -116,26 +116,18 @@ with st.form("form_evento"):
     else:
         nome = st.text_input("Nome do cliente")
 
-    # =========================
-    # ENDEREÇO NOVO (ESTRUTURADO)
-    # =========================
+    st.subheader("📍 Endereço")
 
-    st.subheader("📍 Endereço do evento")
-
-    cep = st.text_input("CEP (opcional)")
-    endereco = st.text_input("Endereço (Rua / Avenida)")
+    cep = st.text_input("CEP")
+    endereco = st.text_input("Endereço (Rua/Avenida)")
     numero = st.text_input("Número")
     complemento = st.text_input("Complemento")
 
     cidade = ""
 
-    # CEP só para consulta (não quebra sistema)
     if cep:
         try:
-            resposta = requests.get(
-                f"https://viacep.com.br/ws/{cep}/json/",
-                timeout=5
-            )
+            resposta = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
 
             if resposta.status_code == 200:
                 dados = resposta.json()
@@ -143,25 +135,13 @@ with st.form("form_evento"):
                 if "erro" not in dados:
                     cidade = dados.get("localidade", "")
                     estado = dados.get("uf", "")
-                    st.success(f"📍 CEP válido: {cidade}/{estado}")
-                else:
-                    st.warning("CEP não encontrado (continuando com endereço manual)")
-
-            else:
-                st.warning("Falha ao consultar CEP")
-
+                    st.success(f"📍 {cidade}/{estado}")
         except:
-            st.warning("Erro ao buscar CEP")
-
-    # =========================
-    # MONTAGEM DO ENDEREÇO FINAL
-    # =========================
+            st.warning("Erro ao consultar CEP")
 
     endereco_final = endereco
-
     if numero:
         endereco_final += f", {numero}"
-
     if complemento:
         endereco_final += f" - {complemento}"
 
@@ -192,6 +172,12 @@ with st.form("form_evento"):
     if letras:
         qtd_letras = st.number_input("Quantidade de letras", 1)
 
+    # =========================
+    # COMBO (OPÇÃO MANUAL + AUTO)
+    # =========================
+
+    combo_manual = st.checkbox("🔥 Aplicar Combo (Robô + Tambor LED com desconto)")
+
     salvar = st.form_submit_button("Salvar evento")
 
     # =========================
@@ -209,13 +195,22 @@ with st.form("form_evento"):
         else:
 
             total = 0
+            qtd_robos = len(robos)
 
-            if len(robos) >= 1 and tambor:
+            # =========================
+            # COMBO INTELIGENTE
+            # =========================
+
+            combo_auto = qtd_robos >= 1 and tambor
+
+            if combo_manual or combo_auto:
                 total += config["combo"]
-                if len(robos) > 1:
-                    total += (len(robos) - 1) * config["robo"]
+                if combo_auto:
+                    st.info("🔥 Combo automático aplicado (desconto de R$ 1000)")
+                else:
+                    st.info("🔥 Combo manual aplicado")
             else:
-                total += len(robos) * config["robo"]
+                total += qtd_robos * config["robo"]
                 if tambor:
                     total += config["tambor"]
 
@@ -241,7 +236,8 @@ with st.form("form_evento"):
                 "letras": qtd_letras if letras else 0,
                 "tambor": tambor,
                 "pista": pista,
-                "plataforma": plataforma
+                "plataforma": plataforma,
+                "combo": combo_manual or combo_auto
             }
 
             st.session_state.eventos.append(evento)
@@ -286,6 +282,9 @@ else:
 
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
+
+            if evento.get("combo"):
+                extras.append("🔥 Combo aplicado (Desconto R$1000)")
 
             servicos = ", ".join(extras) if extras else "Nenhum serviço extra"
 

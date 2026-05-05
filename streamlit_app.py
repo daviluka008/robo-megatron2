@@ -192,17 +192,8 @@ with st.form("form_evento"):
 
             combo_auto = qtd_robos >= 1 and tambor
 
-            # =========================
-            # COMBO
-            # =========================
-
             if combo_manual or combo_auto:
                 total += config["combo"]
-
-                if combo_auto:
-                    st.info("🔥 Combo automático aplicado")
-                else:
-                    st.info("🔥 Combo manual aplicado")
             else:
                 total += qtd_robos * config["robo"]
                 if tambor:
@@ -244,7 +235,7 @@ with st.form("form_evento"):
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA
+# LISTA DE EVENTOS
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -278,8 +269,9 @@ else:
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
 
+            # 🔥 CORREÇÃO FINAL DO TEXTO DO COMBO
             if evento.get("combo"):
-                extras.append("🔥 (Robô + Tambor LED)")
+                extras.append("🔥 Combo (Robô + Tambor LED)")
 
             qtd_robos = len(evento.get("robos", []))
             if qtd_robos == 0:

@@ -144,7 +144,7 @@ with st.form("form_evento"):
 
 st.subheader("🎛️ Serviços extras")
 
-combo_manual = st.checkbox("(Robô + Tambor LED)")
+combo_manual = st.checkbox("🔥 Combo (Robô + Tambor de LED)")  # ✅ CORRIGIDO
 tambor = st.checkbox("🥁 Tambor LED")
 pista = st.checkbox("💃 Pista Paris")
 plataforma = st.checkbox("🎥 Plataforma 360")
@@ -231,13 +231,10 @@ else:
 
             data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
 
-            robos_lista = evento.get("robos", [])
-
             extras = []
 
-            # 🔥 CORREÇÃO DO COMBO
             if evento.get("combo"):
-                extras.append("🔥 Combo (Robô + Tambor LED)")
+                extras.append("🔥 Combo (Robô + Tambor de LED)")  # ✔ corrigido aqui também
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")
@@ -260,7 +257,7 @@ else:
 
 📍 Endereço: {evento.get('endereco')}  
 
-🤖 Robôs: {len(robos_lista)} ({", ".join(robos_lista)})  
+🤖 Robôs: {len(evento.get('robos', []))} ({", ".join(evento.get('robos', []))})  
 🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
 
 💰 Total: R$ {evento.get('total')}  

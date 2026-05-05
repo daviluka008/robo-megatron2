@@ -53,31 +53,25 @@ def formatar_cpf(cpf):
     return cpf
 
 # =========================
-# CLIENTES
+# DADOS
 # =========================
 
 clientes = carregar_dados(ARQUIVO_CLIENTES, [])
-
-def buscar_cliente(cpf):
-    for c in clientes:
-        if c["cpf"] == cpf:
-            return c
-    return None
-
-# =========================
-# CONFIG
-# =========================
-
-config_padrao = {
+config = carregar_dados(ARQUIVO_CONFIG, {
     "robo": 1200,
     "tambor": 2800,
     "combo": 3000,
     "pista": 4000,
     "plataforma": 2500,
     "letra": 200
-}
+})
 
-config = carregar_dados(ARQUIVO_CONFIG, config_padrao)
+if "eventos" not in st.session_state:
+    st.session_state.eventos = carregar_dados(ARQUIVO_EVENTOS, [])
+
+# =========================
+# CONFIG PREÇOS
+# =========================
 
 st.sidebar.header("⚙️ Configurar preços")
 
@@ -89,14 +83,27 @@ if st.sidebar.button("💾 Salvar preços"):
     st.sidebar.success("Preços salvos!")
 
 # =========================
-# EVENTOS
+# LETRAS (FORA DO FORM - CORRETO)
 # =========================
 
-if "eventos" not in st.session_state:
-    st.session_state.eventos = carregar_dados(ARQUIVO_EVENTOS, [])
+st.write("🎛️ Serviços extras")
+
+letras = st.checkbox("🔠 Letras")
+
+qtd_letras = 0
+nome_letras = ""
+
+if letras:
+    qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
+    nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)")
+
+combo_manual = st.checkbox("(Robô + Tambor LED)")
+tambor = st.checkbox("🥁 Tambor LED")
+pista = st.checkbox("💃 Pista Paris")
+plataforma = st.checkbox("🎥 Plataforma 360")
 
 # =========================
-# FORMULÁRIO
+# FORMULÁRIO PRINCIPAL
 # =========================
 
 st.header("➕ Novo Evento")
@@ -106,7 +113,7 @@ with st.form("form_evento"):
     cpf_input = st.text_input("CPF")
     cpf_formatado = formatar_cpf(cpf_input)
 
-    cliente_existente = buscar_cliente(cpf_formatado)
+    cliente_existente = next((c for c in clientes if c["cpf"] == cpf_formatado), None)
 
     if cliente_existente:
         nome = st.text_input("Nome", value=cliente_existente["nome"])
@@ -146,25 +153,6 @@ with st.form("form_evento"):
         ["Tequileiro"] * qtd_tequileiro
     )
 
-    # =========================
-    # SERVIÇOS (ORDEM CORRETA)
-    # =========================
-
-    st.write("🎛️ Serviços extras")
-
-    combo_manual = st.checkbox("(Robô + Tambor LED)")
-    tambor = st.checkbox("🥁 Tambor LED")
-    pista = st.checkbox("💃 Pista Paris")
-    plataforma = st.checkbox("🎥 Plataforma 360")
-    letras = st.checkbox("🔠 Letras")
-
-    qtd_letras = 0
-    nome_letras = ""
-
-    if letras:
-        qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
-        nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)")
-
     salvar = st.form_submit_button("Salvar evento")
 
     # =========================
@@ -178,6 +166,7 @@ with st.form("form_evento"):
             st.stop()
 
         total = 0
+
         qtd_robos = len(robos)
 
         combo_auto = qtd_robos >= 1 and tambor
@@ -226,7 +215,7 @@ with st.form("form_evento"):
         st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA DE EVENTOS
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")

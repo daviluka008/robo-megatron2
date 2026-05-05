@@ -144,15 +144,7 @@ with st.form("form_evento"):
 
 st.subheader("🎛️ Serviços extras")
 
-combo_manual = st.checkbox("🔥 Combo (Robô + Tambor LED)")
-
-robo_combo = None
-if combo_manual:
-    robo_combo = st.radio(
-        "Escolha o robô do combo:",
-        ["Megatron", "Bumblebee", "Tequileiro"]
-    )
-
+combo_manual = st.checkbox("(Robô + Tambor LED)")
 tambor = st.checkbox("🥁 Tambor LED")
 pista = st.checkbox("💃 Pista Paris")
 plataforma = st.checkbox("🎥 Plataforma 360")
@@ -176,20 +168,14 @@ if st.session_state.get("_salvar"):
         st.error("CPF inválido!")
         st.stop()
 
-    robos = st.session_state["_robos"]
+    robos = st.session_state["_robos"].copy()
 
     total = 0
 
     combo_auto = len(robos) >= 1 and tambor
-    combo_ativo = combo_manual or combo_auto
 
-    if combo_ativo:
+    if combo_manual or combo_auto:
         total += config["combo"]
-
-        # 🔥 AGORA SALVA O ROBÔ DO COMBO CORRETAMENTE
-        if robo_combo:
-            robos = [robo_combo]
-
     else:
         total += len(robos) * config["robo"]
         if tambor:
@@ -212,13 +198,12 @@ if st.session_state.get("_salvar"):
         "data": st.session_state["_data"],
         "tipo": st.session_state["_tipo"],
         "robos": robos,
-        "robo_combo": robo_combo,  # 🔥 ADICIONADO
         "letras": qtd_letras,
         "nome_letras": nome_letras,
         "tambor": tambor,
         "pista": pista,
         "plataforma": plataforma,
-        "combo": combo_ativo,
+        "combo": combo_manual or combo_auto,
         "total": total
     }
 
@@ -246,10 +231,13 @@ else:
 
             data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
 
+            robos_lista = evento.get("robos", [])
+
             extras = []
 
+            # 🔥 CORREÇÃO DO COMBO
             if evento.get("combo"):
-                extras.append("🔥 Combo ( Robô + Tambor LED )")
+                extras.append("🔥 Combo (Robô + Tambor LED)")
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")
@@ -263,15 +251,6 @@ else:
             if evento.get("letras", 0) > 0:
                 extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")
 
-            robos_lista = evento.get("robos", [])
-
-            if not robos_lista:
-                robos_texto = "Megatron"
-                qtd = 1
-            else:
-                robos_texto = ", ".join(robos_lista)
-                qtd = len(robos_lista)
-
             st.success(f"""
 📌 Cliente: {evento.get('nome')}  
 🧾 CPF: {evento.get('cpf')}  
@@ -281,7 +260,7 @@ else:
 
 📍 Endereço: {evento.get('endereco')}  
 
-🤖 Robôs: {qtd} ({robos_texto})  
+🤖 Robôs: {len(robos_lista)} ({", ".join(robos_lista)})  
 🎛️ Serviços: {", ".join(extras) if extras else "Nenhum serviço extra"}  
 
 💰 Total: R$ {evento.get('total')}  

@@ -71,13 +71,17 @@ if "eventos" not in st.session_state:
     st.session_state.eventos = carregar_dados(ARQUIVO_EVENTOS, [])
 
 # =========================
-# CONFIG PREÇOS
+# CONFIG PREÇOS (ATUALIZADO)
 # =========================
 
 st.sidebar.header("⚙️ Configurar preços")
 
-for k in config:
-    config[k] = st.sidebar.number_input(k.capitalize(), value=config[k])
+config["robo"] = st.sidebar.number_input("Robô", value=config["robo"])
+config["tambor"] = st.sidebar.number_input("Tambor LED", value=config["tambor"])
+config["combo"] = st.sidebar.number_input("Combo", value=config["combo"])
+config["pista"] = st.sidebar.number_input("Pista", value=config["pista"])
+config["plataforma"] = st.sidebar.number_input("Plataforma", value=config["plataforma"])
+config["letra"] = st.sidebar.number_input("Letras", value=config["letra"])
 
 if st.sidebar.button("💾 Salvar preços"):
     salvar_dados(ARQUIVO_CONFIG, config)
@@ -132,7 +136,6 @@ with st.form("form_evento"):
         st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
         st.session_state["_tipo"] = tipo
         st.session_state["_robos"] = robos
-
         st.session_state["_salvar"] = True
 
 # =========================
@@ -230,7 +233,6 @@ else:
 
             extras = []
 
-            # ✅ CORREÇÃO AQUI (COMO VOCÊ PEDIU)
             if evento.get("combo"):
                 extras.append("🔥 COMBO (Robô + Tambor LED)")
 

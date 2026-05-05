@@ -20,16 +20,19 @@ ARQUIVO_CONFIG = "config.json"
 
 def carregar_dados(arquivo, padrao):
     if os.path.exists(arquivo):
-        with open(arquivo, "r") as f:
-            return json.load(f)
+        try:
+            with open(arquivo, "r") as f:
+                return json.load(f)
+        except:
+            return padrao
     return padrao
 
 def salvar_dados(arquivo, dados):
     with open(arquivo, "w") as f:
-        json.dump(dados, f)
+        json.dump(dados, f, indent=4)
 
 # =========================
-# CONFIG (PREÇOS)
+# CONFIG
 # =========================
 
 config_padrao = {
@@ -84,12 +87,23 @@ with st.form("form_evento"):
         "Casamento", "Festa", "15 anos", "Balada", "Outro"
     ])
 
-    st.write("🤖 Escolha os robôs:")
+    # =========================
+    # ROBÔS (ATÉ 7)
+    # =========================
 
-    robos = st.multiselect(
-        "Selecione os robôs",
-        ["Megatron", "Bumblebee", "Tequileiro"]
-    )
+    st.write("🤖 Escolha os robôs (máx. 7):")
+
+    opcoes_robos = ["Megatron", "Bumblebee", "Tequileiro"]
+
+    robos = st.multiselect("Selecione", opcoes_robos)
+
+    if len(robos) > 7:
+        st.error("Máximo de 7 robôs permitido.")
+        robos = robos[:7]
+
+    # =========================
+    # SERVIÇOS
+    # =========================
 
     tambor = st.checkbox("🥁 Tambor LED")
     pista = st.checkbox("💃 Pista Paris")
@@ -103,12 +117,15 @@ with st.form("form_evento"):
 
     salvar = st.form_submit_button("Salvar evento")
 
+    # =========================
+    # CÁLCULO
+    # =========================
+
     if salvar:
 
         total = 0
         qtd_robos = len(robos)
 
-        # ROBÔS
         valor_robos = 0
 
         if qtd_robos == 1:
@@ -116,7 +133,6 @@ with st.form("form_evento"):
         elif qtd_robos > 1:
             valor_robos = config["robo"] + (qtd_robos - 1) * config["extra"]
 
-        # COMBO
         if qtd_robos >= 1 and tambor:
             total += config["combo"]
 
@@ -128,7 +144,6 @@ with st.form("form_evento"):
             if tambor:
                 total += config["tambor"]
 
-        # OUTROS
         if pista:
             total += config["pista"]
 
@@ -153,7 +168,7 @@ with st.form("form_evento"):
         st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA
+# LISTA COM MENSAGEM ÚNICA
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -165,24 +180,28 @@ else:
 
         data_formatada = date.fromisoformat(evento["data"]).strftime("%d/%m/%Y")
 
-        st.subheader(f"{evento['nome']} - {data_formatada}")
-
-        st.write(f"Tipo: {evento['tipo']}")
-
-        if evento["robos"]:
-            st.write(f"🤖 Robôs ({len(evento['robos'])}): {', '.join(evento['robos'])}")
-
         data_evento = date.fromisoformat(evento["data"])
 
+        alerta = ""
         if data_evento == date.today():
-            st.error("🚨 EVENTO HOJE!")
+            alerta = "🚨 EVENTO HOJE!"
         elif (data_evento - date.today()).days == 1:
-            st.warning("⚠️ Evento amanhã")
+            alerta = "⚠️ Evento amanhã"
 
-        if evento["letras"] > 0:
-            st.write(f"🔠 Letras: {evento['letras']}")
+        robos_txt = ", ".join(evento["robos"]) if evento["robos"] else "Nenhum"
+        letras_txt = f"{evento['letras']} letras" if evento["letras"] > 0 else "Nenhuma"
 
-        st.success(f"💰 Total do evento: R$ {evento['total']}")
+        mensagem = f"""
+📌 Cliente: {evento['nome']}  
+📅 Data: {data_formatada}  
+🎉 Tipo: {evento['tipo']}  
 
+🤖 Robôs: {robos_txt}  
+🔠 Letras: {letras_txt}  
+
+💰 Total: R$ {evento['total']}  
+{alerta}
+"""
+
+        st.success(mensagem)
         st.divider()
-        

@@ -84,16 +84,33 @@ if st.sidebar.button("💾 Salvar preços"):
     st.sidebar.success("Preços salvos!")
 
 # =========================
-# FORMULÁRIO
+# SERVIÇOS (FORA DO FORM = DINÂMICO)
+# =========================
+
+st.write("🎛️ Serviços extras")
+
+combo_manual = st.checkbox("(Robô + Tambor LED)")
+tambor = st.checkbox("🥁 Tambor LED")
+pista = st.checkbox("💃 Pista Paris")
+plataforma = st.checkbox("🎥 Plataforma 360")
+
+letras = st.checkbox("🔠 Letras")
+
+qtd_letras = 0
+nome_letras = ""
+
+if letras:
+    qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
+    nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)")
+
+# =========================
+# FORMULÁRIO (SÓ DADOS)
 # =========================
 
 st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
 
-    # =========================
-    # DADOS PESSOAIS
-    # =========================
     cpf_input = st.text_input("CPF")
     cpf_formatado = formatar_cpf(cpf_input)
 
@@ -104,35 +121,16 @@ with st.form("form_evento"):
     else:
         nome = st.text_input("Nome do cliente")
 
-    # =========================
-    # ENDEREÇO
-    # =========================
     cep = st.text_input("CEP")
     endereco = st.text_input("Endereço")
     numero = st.text_input("Número")
     complemento = st.text_input("Complemento")
-
-    cidade = ""
-
-    if cep:
-        try:
-            r = requests.get(f"https://viacep.com.br/ws/{cep}/json/", timeout=5)
-            data = r.json()
-            if "erro" not in data:
-                cidade = data.get("localidade", "")
-        except:
-            pass
-
-    endereco_final = f"{endereco}, {numero} - {complemento}"
 
     horario = st.time_input("Horário")
     data_evento = st.date_input("Data", min_value=date.today())
 
     tipo = st.selectbox("Tipo", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
 
-    # =========================
-    # ROBÔS
-    # =========================
     qtd_megatron = st.number_input("Megatron", 0, 7)
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
     qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
@@ -143,27 +141,11 @@ with st.form("form_evento"):
         ["Tequileiro"] * qtd_tequileiro
     )
 
-    # =========================
-    # SERVIÇOS (ORDEM CORRETA)
-    # =========================
-    combo_manual = st.checkbox("(Robô + Tambor LED)")
-    tambor = st.checkbox("🥁 Tambor LED")
-    pista = st.checkbox("💃 Pista Paris")
-    plataforma = st.checkbox("🎥 Plataforma 360")
-
-    letras = st.checkbox("🔠 Letras")
-
-    qtd_letras = 0
-    nome_letras = ""
-
-    if letras:
-        qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
-        nome_letras = st.text_input("Nome das letras (ex: DAVI, 15 ANOS)")
-
-    # =========================
-    # SALVAR
-    # =========================
     salvar = st.form_submit_button("Salvar evento")
+
+    # =========================
+    # CÁLCULO
+    # =========================
 
     if salvar:
 
@@ -195,8 +177,7 @@ with st.form("form_evento"):
         evento = {
             "nome": nome,
             "cpf": cpf_formatado,
-            "endereco": endereco_final,
-            "cidade": cidade,
+            "endereco": f"{endereco}, {numero} - {complemento}",
             "horario": str(horario),
             "data": data_evento.strftime("%Y-%m-%d"),
             "tipo": tipo,
@@ -220,7 +201,7 @@ with st.form("form_evento"):
         st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA DE EVENTOS
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")

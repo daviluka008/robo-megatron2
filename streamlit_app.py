@@ -14,6 +14,7 @@ st.title("📋 Controle de Eventos - Megatron")
 
 ARQUIVO_EVENTOS = "eventos.json"
 ARQUIVO_CONFIG = "config.json"
+ARQUIVO_CLIENTES = "clientes.json"
 
 # =========================
 # FUNÇÕES
@@ -31,6 +32,35 @@ def carregar_dados(arquivo, padrao):
 def salvar_dados(arquivo, dados):
     with open(arquivo, "w") as f:
         json.dump(dados, f, indent=4)
+
+# CPF
+def validar_cpf(cpf):
+    cpf = ''.join(filter(str.isdigit, cpf))
+    if len(cpf) != 11 or cpf == cpf[0] * 11:
+        return False
+
+    soma = sum(int(cpf[i]) * (10 - i) for i in range(9))
+    dig1 = (soma * 10 % 11) % 10
+
+    soma = sum(int(cpf[i]) * (11 - i) for i in range(10))
+    dig2 = (soma * 10 % 11) % 10
+
+    return dig1 == int(cpf[9]) and dig2 == int(cpf[10])
+
+def formatar_cpf(cpf):
+    cpf = ''.join(filter(str.isdigit, cpf))
+    if len(cpf) == 11:
+        return f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
+    return cpf
+
+# CLIENTES
+clientes = carregar_dados(ARQUIVO_CLIENTES, [])
+
+def buscar_cliente(cpf):
+    for c in clientes:
+        if c["cpf"] == cpf:
+            return c
+    return None
 
 # =========================
 # CONFIG PREÇOS
@@ -75,17 +105,30 @@ st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
 
-    nome = st.text_input("Nome do cliente")
+    # CPF + AUTO CLIENTE
+    cpf_input = st.text_input("CPF")
+    cpf_formatado = formatar_cpf(cpf_input)
+
+    cliente_existente = buscar_cliente(cpf_formatado)
+
+    if cliente_existente:
+        st.success("Cliente encontrado 👇")
+        nome = st.text_input("Nome", value=cliente_existente["nome"])
+    else:
+        nome = st.text_input("Nome do cliente")
 
     # =========================
-    # CEP (SEM API)
+    # ENDEREÇO
     # =========================
 
     st.write("📍 Local do evento")
 
     cep = st.text_input("CEP")
 
-    endereco = ""
+    endereco_base = ""
+    numero = st.text_input("Número")
+    complemento = st.text_input("Complemento")
+
     cidade = ""
     taxa_deslocamento = 0
     km = 0
@@ -95,16 +138,15 @@ with st.form("form_evento"):
             resposta = requests.get(f"https://viacep.com.br/ws/{cep}/json/").json()
 
             if "erro" not in resposta:
-                endereco = f"{resposta['logradouro']}"
+                endereco_base = resposta["logradouro"]
                 cidade = resposta["localidade"]
                 estado = resposta["uf"]
 
-                st.success(f"{endereco} - {cidade}/{estado}")
+                st.success(f"{endereco_base} - {cidade}/{estado}")
 
                 if cidade.lower() != "são paulo":
                     st.warning("🚗 Fora da capital")
-
-                    km = st.number_input("Distância aproximada (km)", min_value=1.0)
+                    km = st.number_input("Distância (km)", min_value=1.0)
                     taxa_deslocamento = km * 2
                 else:
                     st.info("Sem taxa de deslocamento")
@@ -114,6 +156,8 @@ with st.form("form_evento"):
 
         except:
             st.error("Erro ao buscar CEP")
+
+    endereco_final = f"{endereco_base}, {numero} - {complemento}"
 
     horario = st.time_input("Horário do evento")
 
@@ -161,6 +205,10 @@ with st.form("form_evento"):
 
     if salvar:
 
+        if not validar_cpf(cpf_input):
+            st.error("CPF inválido!")
+            st.stop()
+
         if total_robos > 7:
             st.error("Máximo de 7 robôs.")
         else:
@@ -192,7 +240,8 @@ with st.form("form_evento"):
 
             evento = {
                 "nome": nome,
-                "endereco": endereco,
+                "cpf": cpf_formatado,
+                "endereco": endereco_final,
                 "cidade": cidade,
                 "cep": cep,
                 "horario": str(horario),
@@ -206,6 +255,14 @@ with st.form("form_evento"):
 
             st.session_state.eventos.append(evento)
             salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+
+            # SALVAR CLIENTE
+            if not cliente_existente:
+                clientes.append({
+                    "nome": nome,
+                    "cpf": cpf_formatado
+                })
+                salvar_dados(ARQUIVO_CLIENTES, clientes)
 
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
@@ -229,25 +286,20 @@ else:
         elif (data_evento - date.today()).days == 1:
             alerta = "⚠️ Evento amanhã"
 
-        horario = evento.get("horario", "Não informado")
-        endereco = evento.get("endereco", "Não informado")
-        cidade = evento.get("cidade", "")
-        km = evento.get("km", 0)
-
-        robos_txt = f"{len(evento['robos'])} robôs: {', '.join(evento['robos'])}" if evento.get("robos") else "Nenhum"
-
         mensagem = f"""
-📌 Cliente: {evento.get('nome', '')}  
-📅 Data: {data_formatada} às {horario}  
-🎉 Tipo: {evento.get('tipo', '')}  
+📌 Cliente: {evento.get('nome')}  
+🧾 CPF: {evento.get('cpf')}  
 
-📍 Local: {endereco} - {cidade}  
+📅 Data: {data_formatada} às {evento.get('horario')}  
+🎉 Tipo: {evento.get('tipo')}  
 
-🤖 Robôs: {robos_txt}  
+📍 Endereço: {evento.get('endereco')}  
 
-🚗 Distância: {km} km  
+🤖 Robôs: {len(evento['robos'])}  
 
-💰 Total: R$ {evento.get('total', 0)}  
+🚗 Distância: {evento.get('km')} km  
+
+💰 Total: R$ {evento.get('total')}  
 {alerta}
 """
 

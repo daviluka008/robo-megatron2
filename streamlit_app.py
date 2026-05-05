@@ -84,7 +84,7 @@ if st.sidebar.button("💾 Salvar preços"):
     st.sidebar.success("Preços salvos!")
 
 # =========================
-# FORMULÁRIO (DADOS PRIMEIRO)
+# FORMULÁRIO
 # =========================
 
 st.header("➕ Novo Evento")
@@ -124,92 +124,45 @@ with st.form("form_evento"):
     salvar = st.form_submit_button("Salvar evento")
 
     if salvar:
-        st.session_state["_cpf"] = cpf_input
-        st.session_state["_cpf_formatado"] = cpf_formatado
-        st.session_state["_nome"] = nome
-        st.session_state["_endereco"] = f"{endereco}, {numero} - {complemento}"
-        st.session_state["_horario"] = str(horario)
-        st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
-        st.session_state["_tipo"] = tipo
-        st.session_state["_robos"] = robos
 
-        st.session_state["_salvar"] = True
+        if not validar_cpf(cpf_input):
+            st.error("CPF inválido!")
+            st.stop()
 
-# =========================
-# SERVIÇOS (DEPOIS DO FORM)
-# =========================
+        combo_manual = len(robos) >= 1
 
-st.subheader("🎛️ Serviços extras")
+        total = 0
 
-combo_manual = st.checkbox("(Robô + Tambor LED)")
-tambor = st.checkbox("🥁 Tambor LED")
-pista = st.checkbox("💃 Pista Paris")
-plataforma = st.checkbox("🎥 Plataforma 360")
+        if combo_manual:
+            total += config["combo"]
+        else:
+            total += len(robos) * config["robo"]
 
-letras = st.checkbox("🔠 Letras")
+        evento = {
+            "nome": nome,
+            "cpf": cpf_formatado,
+            "endereco": f"{endereco}, {numero} - {complemento}",
+            "horario": str(horario),
+            "data": data_evento.strftime("%Y-%m-%d"),
+            "tipo": tipo,
+            "robos": robos,
+            "total": total,
+            "tambor": False,
+            "pista": False,
+            "plataforma": False,
+            "combo": combo_manual,
+            "letras": 0,
+            "nome_letras": ""
+        }
 
-qtd_letras = 0
-nome_letras = ""
+        st.session_state.eventos.append(evento)
+        salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
 
-if letras:
-    qtd_letras = st.number_input("Quantidade de letras", min_value=1, value=1)
-    nome_letras = st.text_input("Nome das letras")
+        if not cliente_existente:
+            clientes.append({"nome": nome, "cpf": cpf_formatado})
+            salvar_dados(ARQUIVO_CLIENTES, clientes)
 
-# =========================
-# SALVAR EVENTO
-# =========================
-
-if st.session_state.get("_salvar"):
-
-    if not validar_cpf(st.session_state["_cpf"]):
-        st.error("CPF inválido!")
-        st.stop()
-
-    robos = st.session_state["_robos"]
-
-    total = 0
-
-    combo_auto = len(robos) >= 1 and tambor
-
-    if combo_manual or combo_auto:
-        total += config["combo"]
-    else:
-        total += len(robos) * config["robo"]
-        if tambor:
-            total += config["tambor"]
-
-    if pista:
-        total += config["pista"]
-
-    if plataforma:
-        total += config["plataforma"]
-
-    if letras:
-        total += qtd_letras * config["letra"]
-
-    evento = {
-        "nome": st.session_state["_nome"],
-        "cpf": st.session_state["_cpf_formatado"],
-        "endereco": st.session_state["_endereco"],
-        "horario": st.session_state["_horario"],
-        "data": st.session_state["_data"],
-        "tipo": st.session_state["_tipo"],
-        "robos": robos,
-        "letras": qtd_letras,
-        "nome_letras": nome_letras,
-        "tambor": tambor,
-        "pista": pista,
-        "plataforma": plataforma,
-        "combo": combo_manual or combo_auto,
-        "total": total
-    }
-
-    st.session_state.eventos.append(evento)
-    salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
-
-    st.session_state["_salvar"] = False
-
-    st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
+        st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
 # LISTA
@@ -230,14 +183,24 @@ else:
 
             extras = []
 
+            # =========================
+            # SERVIÇOS CORRIGIDOS
+            # =========================
+
             if evento.get("combo"):
                 extras.append("🔥 Combo (Robô + Tambor LED)")
-            if evento.get("tambor"):
-                extras.append("🥁 Tambor LED")
+            else:
+                if len(evento.get("robos", [])) > 0:
+                    extras.append("🤖 Robô + Tambor LED")
+
             if evento.get("pista"):
                 extras.append("💃 Pista Paris")
+
             if evento.get("plataforma"):
                 extras.append("🎥 Plataforma 360")
+
+            if evento.get("tambor"):
+                extras.append("🥁 Tambor LED")
 
             if evento.get("letras", 0) > 0:
                 extras.append(f"🔠 Letras: {evento.get('nome_letras')} ({evento.get('letras')})")

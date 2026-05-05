@@ -71,7 +71,7 @@ if "eventos" not in st.session_state:
     st.session_state.eventos = carregar_dados(ARQUIVO_EVENTOS, [])
 
 # =========================
-# CONFIG PREÇOS (ATUALIZADO)
+# CONFIG PREÇOS
 # =========================
 
 st.sidebar.header("⚙️ Configurar preços")
@@ -88,7 +88,7 @@ if st.sidebar.button("💾 Salvar preços"):
     st.sidebar.success("Preços salvos!")
 
 # =========================
-# FORMULÁRIO (DADOS PRIMEIRO)
+# FORMULÁRIO
 # =========================
 
 st.header("➕ Novo Evento")
@@ -139,7 +139,7 @@ with st.form("form_evento"):
         st.session_state["_salvar"] = True
 
 # =========================
-# SERVIÇOS (DEPOIS DO FORM)
+# SERVIÇOS
 # =========================
 
 st.subheader("🎛️ Serviços extras")
@@ -234,7 +234,7 @@ else:
             extras = []
 
             if evento.get("combo"):
-                extras.append("🔥 COMBO (Robô + Tambor LED)")
+                extras.append("🔥 Combo (Robô + Tambor LED)")  # ✅ CORRIGIDO
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")

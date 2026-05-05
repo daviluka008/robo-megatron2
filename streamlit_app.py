@@ -73,7 +73,12 @@ if "eventos" not in st.session_state:
 st.header("➕ Novo Evento")
 
 with st.form("form_evento"):
+
+    # DADOS
     nome = st.text_input("Nome do cliente")
+    endereco = st.text_input("Endereço do evento")
+    cep = st.text_input("CEP")
+    horario = st.time_input("Horário do evento")
 
     data_evento = st.date_input(
         "Data do evento",
@@ -86,23 +91,25 @@ with st.form("form_evento"):
     ])
 
     # =========================
-    # ROBÔS (QUANTIDADE)
+    # ROBÔS (MISTO)
     # =========================
 
-    st.write("🤖 Quantos robôs?")
+    st.write("🤖 Quantidade de cada robô (máx. 7)")
 
-    qtd_robos = st.radio(
-        "Selecione a quantidade",
-        [1, 2, 3, 4, 5, 6, 7],
-        horizontal=True
+    qtd_megatron = st.number_input("Megatron", min_value=0, max_value=7, step=1)
+    qtd_bumblebee = st.number_input("Bumblebee", min_value=0, max_value=7, step=1)
+    qtd_tequileiro = st.number_input("Tequileiro", min_value=0, max_value=7, step=1)
+
+    total_robos = qtd_megatron + qtd_bumblebee + qtd_tequileiro
+
+    if total_robos > 7:
+        st.error("Máximo de 7 robôs no total.")
+
+    robos = (
+        ["Megatron"] * qtd_megatron +
+        ["Bumblebee"] * qtd_bumblebee +
+        ["Tequileiro"] * qtd_tequileiro
     )
-
-    tipo_robo = st.selectbox(
-        "Modelo do robô",
-        ["Megatron", "Bumblebee", "Tequileiro"]
-    )
-
-    robos = [tipo_robo] * qtd_robos
 
     # =========================
     # SERVIÇOS
@@ -118,6 +125,15 @@ with st.form("form_evento"):
     if letras:
         qtd_letras = st.number_input("Quantidade de letras", min_value=1, step=1)
 
+    # =========================
+    # DESLOCAMENTO
+    # =========================
+
+    st.write("🚗 Deslocamento")
+
+    km = st.number_input("Distância (km)", min_value=0.0, step=1.0)
+    taxa_deslocamento = km * 2
+
     salvar = st.form_submit_button("Salvar evento")
 
     # =========================
@@ -126,49 +142,60 @@ with st.form("form_evento"):
 
     if salvar:
 
-        total = 0
-
-        # ROBÔS
-        valor_robos = qtd_robos * config["robo"]
-
-        # COMBO
-        if qtd_robos >= 1 and tambor:
-            total += config["combo"]
-
-            if qtd_robos > 1:
-                total += (qtd_robos - 1) * config["robo"]
+        if total_robos > 7:
+            st.error("Corrija a quantidade de robôs.")
         else:
-            total += valor_robos
 
-            if tambor:
-                total += config["tambor"]
+            total = 0
+            qtd_robos = len(robos)
 
-        # OUTROS
-        if pista:
-            total += config["pista"]
+            valor_robos = qtd_robos * config["robo"]
 
-        if plataforma:
-            total += config["plataforma"]
+            # COMBO
+            if qtd_robos >= 1 and tambor:
+                total += config["combo"]
 
-        if letras:
-            total += qtd_letras * config["letra"]
+                if qtd_robos > 1:
+                    total += (qtd_robos - 1) * config["robo"]
+            else:
+                total += valor_robos
 
-        evento = {
-            "nome": nome,
-            "data": data_evento.strftime("%Y-%m-%d"),
-            "tipo": tipo,
-            "total": total,
-            "robos": robos,
-            "letras": qtd_letras if letras else 0
-        }
+                if tambor:
+                    total += config["tambor"]
 
-        st.session_state.eventos.append(evento)
-        salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+            # OUTROS
+            if pista:
+                total += config["pista"]
 
-        st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
+            if plataforma:
+                total += config["plataforma"]
+
+            if letras:
+                total += qtd_letras * config["letra"]
+
+            # DESLOCAMENTO
+            total += taxa_deslocamento
+
+            evento = {
+                "nome": nome,
+                "endereco": endereco,
+                "cep": cep,
+                "horario": str(horario),
+                "data": data_evento.strftime("%Y-%m-%d"),
+                "tipo": tipo,
+                "total": total,
+                "robos": robos,
+                "letras": qtd_letras if letras else 0,
+                "km": km
+            }
+
+            st.session_state.eventos.append(evento)
+            salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
+
+            st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA (MENSAGEM ÚNICA)
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -187,16 +214,21 @@ else:
         elif (data_evento - date.today()).days == 1:
             alerta = "⚠️ Evento amanhã"
 
-        robos_txt = f"{len(evento['robos'])}x {evento['robos'][0]}" if evento["robos"] else "Nenhum"
+        robos_txt = f"{len(evento['robos'])} robôs: {', '.join(evento['robos'])}" if evento["robos"] else "Nenhum"
         letras_txt = f"{evento['letras']} letras" if evento["letras"] > 0 else "Nenhuma"
 
         mensagem = f"""
 📌 Cliente: {evento['nome']}  
-📅 Data: {data_formatada}  
+📅 Data: {data_formatada} às {evento['horario']}  
 🎉 Tipo: {evento['tipo']}  
+
+📍 Endereço: {evento['endereco']}  
+📮 CEP: {evento['cep']}  
 
 🤖 Robôs: {robos_txt}  
 🔠 Letras: {letras_txt}  
+
+🚗 Distância: {evento['km']} km  
 
 💰 Total: R$ {evento['total']}  
 {alerta}

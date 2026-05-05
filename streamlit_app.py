@@ -119,7 +119,7 @@ with st.form("form_evento"):
     qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
     qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
 
-    robos = (
+    robos_base = (
         ["Megatron"] * qtd_megatron +
         ["Bumblebee"] * qtd_bumblebee +
         ["Tequileiro"] * qtd_tequileiro
@@ -135,7 +135,7 @@ with st.form("form_evento"):
         st.session_state["_horario"] = str(horario)
         st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
         st.session_state["_tipo"] = tipo
-        st.session_state["_robos"] = robos
+        st.session_state["_robos"] = robos_base
         st.session_state["_salvar"] = True
 
 # =========================
@@ -144,7 +144,15 @@ with st.form("form_evento"):
 
 st.subheader("🎛️ Serviços extras")
 
-combo_manual = st.checkbox("🔥 Combo (Robô + Tambor de LED)")  # ✅ CORRIGIDO
+combo_manual = st.checkbox("🔥 Combo (Robô + Tambor de LED)")
+
+robos_combo = None
+if combo_manual:
+    robos_combo = st.selectbox(
+        "🤖 Qual robô no combo?",
+        ["Megatron", "Bumblebee", "Tequileiro"]
+    )
+
 tambor = st.checkbox("🥁 Tambor LED")
 pista = st.checkbox("💃 Pista Paris")
 plataforma = st.checkbox("🎥 Plataforma 360")
@@ -170,9 +178,13 @@ if st.session_state.get("_salvar"):
 
     robos = st.session_state["_robos"].copy()
 
+    # 🔥 AQUI ENTRA O ROBÔ DO COMBO
+    if combo_manual and robos_combo:
+        robos.append(robos_combo)
+
     total = 0
 
-    combo_auto = len(robos) >= 1 and tambor
+    combo_auto = combo_manual and tambor
 
     if combo_manual or combo_auto:
         total += config["combo"]
@@ -234,7 +246,7 @@ else:
             extras = []
 
             if evento.get("combo"):
-                extras.append("🔥 Combo (Robô + Tambor de LED)")  # ✔ corrigido aqui também
+                extras.append("🔥 Combo (Robô + Tambor de LED)")
 
             if evento.get("tambor"):
                 extras.append("🥁 Tambor LED")

@@ -84,7 +84,59 @@ if st.sidebar.button("💾 Salvar preços"):
     st.sidebar.success("Preços salvos!")
 
 # =========================
-# SERVIÇOS (FORA DO FORM)
+# FORMULÁRIO (DADOS PRIMEIRO)
+# =========================
+
+st.header("➕ Novo Evento")
+
+with st.form("form_evento"):
+
+    cpf_input = st.text_input("CPF")
+    cpf_formatado = formatar_cpf(cpf_input)
+
+    cliente_existente = next((c for c in clientes if c["cpf"] == cpf_formatado), None)
+
+    if cliente_existente:
+        nome = st.text_input("Nome", value=cliente_existente["nome"])
+    else:
+        nome = st.text_input("Nome do cliente")
+
+    cep = st.text_input("CEP")
+    endereco = st.text_input("Endereço")
+    numero = st.text_input("Número")
+    complemento = st.text_input("Complemento")
+
+    horario = st.time_input("Horário")
+    data_evento = st.date_input("Data", min_value=date.today())
+
+    tipo = st.selectbox("Tipo de evento", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
+
+    qtd_megatron = st.number_input("Megatron", 0, 7)
+    qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
+    qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
+
+    robos = (
+        ["Megatron"] * qtd_megatron +
+        ["Bumblebee"] * qtd_bumblebee +
+        ["Tequileiro"] * qtd_tequileiro
+    )
+
+    salvar = st.form_submit_button("Salvar evento")
+
+    if salvar:
+        st.session_state["_cpf"] = cpf_input
+        st.session_state["_cpf_formatado"] = cpf_formatado
+        st.session_state["_nome"] = nome
+        st.session_state["_endereco"] = f"{endereco}, {numero} - {complemento}"
+        st.session_state["_horario"] = str(horario)
+        st.session_state["_data"] = data_evento.strftime("%Y-%m-%d")
+        st.session_state["_tipo"] = tipo
+        st.session_state["_robos"] = robos
+
+        st.session_state["_salvar"] = True
+
+# =========================
+# SERVIÇOS (DEPOIS DO FORM)
 # =========================
 
 st.subheader("🎛️ Serviços extras")
@@ -104,102 +156,60 @@ if letras:
     nome_letras = st.text_input("Nome das letras")
 
 # =========================
-# FORMULÁRIO (DADOS PRIMEIRO)
+# SALVAR EVENTO
 # =========================
 
-st.header("➕ Novo Evento")
+if st.session_state.get("_salvar"):
 
-with st.form("form_evento"):
+    if not validar_cpf(st.session_state["_cpf"]):
+        st.error("CPF inválido!")
+        st.stop()
 
-    # DADOS
-    cpf_input = st.text_input("CPF")
-    cpf_formatado = formatar_cpf(cpf_input)
+    robos = st.session_state["_robos"]
 
-    cliente_existente = next((c for c in clientes if c["cpf"] == cpf_formatado), None)
+    total = 0
 
-    if cliente_existente:
-        nome = st.text_input("Nome", value=cliente_existente["nome"])
+    combo_auto = len(robos) >= 1 and tambor
+
+    if combo_manual or combo_auto:
+        total += config["combo"]
     else:
-        nome = st.text_input("Nome do cliente")
+        total += len(robos) * config["robo"]
+        if tambor:
+            total += config["tambor"]
 
-    cep = st.text_input("CEP")
-    endereco = st.text_input("Endereço")
-    numero = st.text_input("Número")
-    complemento = st.text_input("Complemento")
+    if pista:
+        total += config["pista"]
 
-    horario = st.time_input("Horário do evento")
-    data_evento = st.date_input("Data", min_value=date.today())
+    if plataforma:
+        total += config["plataforma"]
 
-    tipo = st.selectbox("Tipo de evento", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
+    if letras:
+        total += qtd_letras * config["letra"]
 
-    qtd_megatron = st.number_input("Megatron", 0, 7)
-    qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
-    qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
+    evento = {
+        "nome": st.session_state["_nome"],
+        "cpf": st.session_state["_cpf_formatado"],
+        "endereco": st.session_state["_endereco"],
+        "horario": st.session_state["_horario"],
+        "data": st.session_state["_data"],
+        "tipo": st.session_state["_tipo"],
+        "robos": robos,
+        "letras": qtd_letras,
+        "nome_letras": nome_letras,
+        "tambor": tambor,
+        "pista": pista,
+        "plataforma": plataforma,
+        "combo": combo_manual or combo_auto,
+        "total": total
+    }
 
-    robos = (
-        ["Megatron"] * qtd_megatron +
-        ["Bumblebee"] * qtd_bumblebee +
-        ["Tequileiro"] * qtd_tequileiro
-    )
+    st.session_state.eventos.append(evento)
+    salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
 
-    salvar = st.form_submit_button("Salvar evento")
+    st.session_state["_salvar"] = False
 
-    # =========================
-    # CÁLCULO
-    # =========================
-
-    if salvar:
-
-        if not validar_cpf(cpf_input):
-            st.error("CPF inválido!")
-            st.stop()
-
-        total = 0
-        qtd_robos = len(robos)
-
-        combo_auto = qtd_robos >= 1 and tambor
-
-        if combo_manual or combo_auto:
-            total += config["combo"]
-        else:
-            total += qtd_robos * config["robo"]
-            if tambor:
-                total += config["tambor"]
-
-        if pista:
-            total += config["pista"]
-
-        if plataforma:
-            total += config["plataforma"]
-
-        if letras:
-            total += qtd_letras * config["letra"]
-
-        evento = {
-            "nome": nome,
-            "cpf": cpf_formatado,
-            "endereco": f"{endereco}, {numero} - {complemento}",
-            "horario": str(horario),
-            "data": data_evento.strftime("%Y-%m-%d"),
-            "tipo": tipo,
-            "total": total,
-            "robos": robos,
-            "letras": qtd_letras,
-            "nome_letras": nome_letras,
-            "tambor": tambor,
-            "pista": pista,
-            "plataforma": plataforma,
-            "combo": combo_manual or combo_auto
-        }
-
-        st.session_state.eventos.append(evento)
-        salvar_dados(ARQUIVO_EVENTOS, st.session_state.eventos)
-
-        if not cliente_existente:
-            clientes.append({"nome": nome, "cpf": cpf_formatado})
-            salvar_dados(ARQUIVO_CLIENTES, clientes)
-
-        st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
+    st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
 # LISTA

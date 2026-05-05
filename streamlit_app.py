@@ -2,6 +2,7 @@ import streamlit as st
 from datetime import date
 import json
 import os
+import requests
 
 st.set_page_config(page_title="Sistema de Eventos", page_icon="📋")
 
@@ -32,7 +33,7 @@ def salvar_dados(arquivo, dados):
         json.dump(dados, f, indent=4)
 
 # =========================
-# CONFIG
+# CONFIG PREÇOS
 # =========================
 
 config_padrao = {
@@ -67,7 +68,7 @@ if "eventos" not in st.session_state:
     st.session_state.eventos = carregar_dados(ARQUIVO_EVENTOS, [])
 
 # =========================
-# CADASTRO
+# FORMULÁRIO
 # =========================
 
 st.header("➕ Novo Evento")
@@ -75,31 +76,62 @@ st.header("➕ Novo Evento")
 with st.form("form_evento"):
 
     nome = st.text_input("Nome do cliente")
-    endereco = st.text_input("Endereço do evento")
+
+    # =========================
+    # CEP (SEM API)
+    # =========================
+
+    st.write("📍 Local do evento")
+
     cep = st.text_input("CEP")
+
+    endereco = ""
+    cidade = ""
+    taxa_deslocamento = 0
+    km = 0
+
+    if cep:
+        try:
+            resposta = requests.get(f"https://viacep.com.br/ws/{cep}/json/").json()
+
+            if "erro" not in resposta:
+                endereco = f"{resposta['logradouro']}"
+                cidade = resposta["localidade"]
+                estado = resposta["uf"]
+
+                st.success(f"{endereco} - {cidade}/{estado}")
+
+                if cidade.lower() != "são paulo":
+                    st.warning("🚗 Fora da capital")
+
+                    km = st.number_input("Distância aproximada (km)", min_value=1.0)
+                    taxa_deslocamento = km * 2
+                else:
+                    st.info("Sem taxa de deslocamento")
+
+            else:
+                st.error("CEP inválido")
+
+        except:
+            st.error("Erro ao buscar CEP")
+
     horario = st.time_input("Horário do evento")
 
-    data_evento = st.date_input(
-        "Data do evento",
-        min_value=date.today(),
-        format="DD/MM/YYYY"
-    )
+    data_evento = st.date_input("Data do evento", min_value=date.today(), format="DD/MM/YYYY")
 
-    tipo = st.selectbox("Tipo de evento", [
-        "Casamento", "Festa", "15 anos", "Balada", "Outro"
-    ])
+    tipo = st.selectbox("Tipo de evento", ["Casamento", "Festa", "15 anos", "Balada", "Outro"])
 
+    # =========================
     # ROBÔS
-    st.write("🤖 Quantidade de cada robô (máx. 7)")
+    # =========================
 
-    qtd_megatron = st.number_input("Megatron", min_value=0, max_value=7)
-    qtd_bumblebee = st.number_input("Bumblebee", min_value=0, max_value=7)
-    qtd_tequileiro = st.number_input("Tequileiro", min_value=0, max_value=7)
+    st.write("🤖 Robôs (máx. 7)")
+
+    qtd_megatron = st.number_input("Megatron", 0, 7)
+    qtd_bumblebee = st.number_input("Bumblebee", 0, 7)
+    qtd_tequileiro = st.number_input("Tequileiro", 0, 7)
 
     total_robos = qtd_megatron + qtd_bumblebee + qtd_tequileiro
-
-    if total_robos > 7:
-        st.error("Máximo de 7 robôs no total.")
 
     robos = (
         ["Megatron"] * qtd_megatron +
@@ -107,7 +139,10 @@ with st.form("form_evento"):
         ["Tequileiro"] * qtd_tequileiro
     )
 
+    # =========================
     # SERVIÇOS
+    # =========================
+
     tambor = st.checkbox("🥁 Tambor LED")
     pista = st.checkbox("💃 Pista Paris")
     plataforma = st.checkbox("🎥 Plataforma 360")
@@ -116,19 +151,18 @@ with st.form("form_evento"):
     qtd_letras = 0
 
     if letras:
-        qtd_letras = st.number_input("Quantidade de letras", min_value=1)
-
-    # DESLOCAMENTO
-    st.write("🚗 Deslocamento")
-    km = st.number_input("Distância (km)", min_value=0.0)
-    taxa_deslocamento = km * 2
+        qtd_letras = st.number_input("Quantidade de letras", 1)
 
     salvar = st.form_submit_button("Salvar evento")
+
+    # =========================
+    # CÁLCULO
+    # =========================
 
     if salvar:
 
         if total_robos > 7:
-            st.error("Corrija a quantidade de robôs.")
+            st.error("Máximo de 7 robôs.")
         else:
 
             total = 0
@@ -138,12 +172,10 @@ with st.form("form_evento"):
 
             if qtd_robos >= 1 and tambor:
                 total += config["combo"]
-
                 if qtd_robos > 1:
                     total += (qtd_robos - 1) * config["robo"]
             else:
                 total += valor_robos
-
                 if tambor:
                     total += config["tambor"]
 
@@ -161,6 +193,7 @@ with st.form("form_evento"):
             evento = {
                 "nome": nome,
                 "endereco": endereco,
+                "cidade": cidade,
                 "cep": cep,
                 "horario": str(horario),
                 "data": data_evento.strftime("%Y-%m-%d"),
@@ -177,7 +210,7 @@ with st.form("form_evento"):
             st.success(f"Evento cadastrado! 💰 Total: R$ {total}")
 
 # =========================
-# LISTA (CORRIGIDA)
+# LISTA
 # =========================
 
 st.header("📅 Agenda de Eventos")
@@ -196,25 +229,21 @@ else:
         elif (data_evento - date.today()).days == 1:
             alerta = "⚠️ Evento amanhã"
 
-        # 🔥 CORREÇÃO AQUI
         horario = evento.get("horario", "Não informado")
         endereco = evento.get("endereco", "Não informado")
-        cep = evento.get("cep", "Não informado")
+        cidade = evento.get("cidade", "")
         km = evento.get("km", 0)
 
         robos_txt = f"{len(evento['robos'])} robôs: {', '.join(evento['robos'])}" if evento.get("robos") else "Nenhum"
-        letras_txt = f"{evento.get('letras', 0)} letras" if evento.get("letras", 0) > 0 else "Nenhuma"
 
         mensagem = f"""
 📌 Cliente: {evento.get('nome', '')}  
 📅 Data: {data_formatada} às {horario}  
 🎉 Tipo: {evento.get('tipo', '')}  
 
-📍 Endereço: {endereco}  
-📮 CEP: {cep}  
+📍 Local: {endereco} - {cidade}  
 
 🤖 Robôs: {robos_txt}  
-🔠 Letras: {letras_txt}  
 
 🚗 Distância: {km} km  
 
